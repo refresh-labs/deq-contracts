@@ -2,5 +2,12 @@
 pragma solidity ^0.8.25;
 
 contract StakedAvail {
+    /// @notice Address of the depositor contract that bridges assets to Avail
+    address public depositor;
+    /// @notice Address of the contract that facilitates withdrawals
+    address public withdrawal;
 
+    function initialize() external initializer {
+
+    }
 }
