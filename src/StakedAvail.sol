@@ -1,22 +1,25 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.25;
 
+import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC20Permit} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import {Initializable} from "lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 import {Ownable2StepUpgradeable} from "lib/openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 import {ERC20Upgradeable, ERC20PermitUpgradeable} from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
+import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol";
+import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
 
-contract StakedAvail is Initializable, ERC20PermitUpgradeable, Ownable2StepUpgradeable  {
+contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable {
+    using Math for uint256;
     using SafeERC20 for IERC20;
 
     /// @notice Address of Avail ERC20 token
-    IERC20 constant avail = IERC20(address(0)); // TODO: update when available!
+    IERC20 private constant avail = IERC20(address(0)); // TODO: update when available!
     /// @notice Address of the depository contract that bridges assets to Avail
     address public depository;
     /// @notice Address of the contract that facilitates withdrawals
-    address public withdrawalHelper;
+    IAvailWithdrawalHelper public withdrawalHelper;
     /// @notice Amount of assets staked (in wei)
     uint256 public assets;
     /// @notice Address of updater contract
@@ -30,7 +33,7 @@ contract StakedAvail is Initializable, ERC20PermitUpgradeable, Ownable2StepUpgra
     event DepositoryUpdated(address depository);
     event WithdrawalHelperUpdated(address withdrawalHelper);
 
-    function initialize(address governance, address _updater, address _depository, address _withdrawalHelper) external initializer {
+    function initialize(address governance, address _updater, address _depository, IAvailWithdrawalHelper _withdrawalHelper) external initializer {
         __ERC20_init("Staked Avail", "stAVAIL");
         __ERC20Permit_init("Staked Avail");
         _transferOwnership(governance);
@@ -59,11 +62,19 @@ contract StakedAvail is Initializable, ERC20PermitUpgradeable, Ownable2StepUpgra
         emit DepositoryUpdated(_depository);
     }
 
-    function updateWithdrawalHelper(address _withdrawalHelper) external onlyOwner {
-        if (_withdrawalHelper == address(0)) revert ZeroAddress();
+    function updateWithdrawalHelper(IAvailWithdrawalHelper _withdrawalHelper) external onlyOwner {
+        if (address(_withdrawalHelper) == address(0)) revert ZeroAddress();
         withdrawalHelper = _withdrawalHelper;
 
-        emit WithdrawalHelperUpdated(_withdrawalHelper);
+        emit WithdrawalHelperUpdated(address(_withdrawalHelper));
+    }
+
+    function previewMint(uint256 amount) public view returns (uint256) {
+        return amount.mulDiv(totalSupply() + 1, assets + 1, Math.Rounding.Floor);
+    }
+
+    function previewBurn(uint256 amount) public view returns (uint256) {
+        return amount.mulDiv(assets + 1, totalSupply() + 1, Math.Rounding.Floor);
     }
 
     function mintWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
@@ -74,12 +85,23 @@ contract StakedAvail is Initializable, ERC20PermitUpgradeable, Ownable2StepUpgra
 
     function mint(uint256 amount) external {
         if (amount == 0) revert ZeroAmount();
+        uint256 shares = previewMint(amount);
+        assets += amount;
+        _mint(msg.sender, shares);
         avail.safeTransferFrom(msg.sender, address(this), amount);
-        _mint(msg.sender, amount);
+    }
+
+    function mintTo(address to, uint256 amount) external {
+        if (amount == 0) revert ZeroAmount();
+        uint256 shares = previewMint(amount);
+        assets += amount;
+        _mint(to, shares);
+        avail.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function burn(uint256 amount) external {
         if (amount == 0) revert ZeroAmount();
         _burn(msg.sender, amount);
+        withdrawalHelper.mint(msg.sender, previewBurn(amount));
     }
 }
