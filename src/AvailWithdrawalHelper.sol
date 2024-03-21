@@ -4,10 +4,12 @@ pragma solidity ^0.8.25;
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {ERC721Upgradeable} from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC721/ERC721Upgradeable.sol";
+import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol";
 
-contract AvailWithdrawalHelper is ERC721Upgradeable {
+contract AvailWithdrawalHelper is ERC721Upgradeable, IAvailWithdrawalHelper {
     using SafeERC20 for IERC20;
 
+    IERC20 public avail;
     IERC20 public stAVAIL;
     address public fulfiller;
     uint256 public lastTokenId;
@@ -15,14 +17,12 @@ contract AvailWithdrawalHelper is ERC721Upgradeable {
     uint256 public lastFulfillment;
     uint256 public minWithdrawal;
 
-    mapping(uint256 => uint256) public balanceOf;
+    mapping(uint256 => uint256) public withdrawalAmounts;
 
-    error InvalidInput();
-    error NotFulfilled();
-    error OnlyStakedAvail();
-    error OnlyFulfiller();
+    error InvalidWithdrawalAmount();
 
-    function initialize(IERC20 _stAVAIL, uint256 _minWithdrawal, address _fulfiller) external initializer {
+    function initialize(IERC20 _avail, IERC20 _stAVAIL, uint256 _minWithdrawal, address _fulfiller) external initializer {
+        avail = _avail;
         stAVAIL = _stAVAIL;
         minWithdrawal = _minWithdrawal;
         fulfiller = _fulfiller;
@@ -32,7 +32,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable {
     function previewFulfill(uint256 from, uint256 till) public view returns (uint256) {
         uint256 amount = 0;
         for (uint256 i = from + 1; i <= till;) {
-            amount += balanceOf[i];
+            amount += withdrawalAmounts[i];
             unchecked {
                 ++i;
             }
@@ -42,11 +42,12 @@ contract AvailWithdrawalHelper is ERC721Upgradeable {
 
     function mint(address account, uint256 amount) external {
         if (msg.sender != address(stAVAIL)) revert OnlyStakedAvail();
+        if (amount < minWithdrawal) revert InvalidWithdrawalAmount();
         uint256 tokenId;
         unchecked {
             tokenId = ++lastTokenId;
         }
-        balanceOf[tokenId] = amount;
+        withdrawalAmounts[tokenId] = amount;
         withdrawalAmount += amount;
         _mint(account, tokenId);
     }
@@ -54,7 +55,9 @@ contract AvailWithdrawalHelper is ERC721Upgradeable {
     function burn(uint256 id) external {
         if (id > lastFulfillment) revert NotFulfilled();
         _burn(id);
-        stAVAIL.safeTransfer(ownerOf(id), balanceOf[id]);
+        uint256 amount = withdrawalAmounts[id];
+        withdrawalAmounts[id] = 0;
+        stAVAIL.safeTransfer(ownerOf(id), amount);
     }
 
     function fulfill(uint256 till) external {
@@ -63,6 +66,6 @@ contract AvailWithdrawalHelper is ERC721Upgradeable {
         uint256 amount = previewFulfill(lastFulfillment, till);
         withdrawalAmount -= amount;
         lastFulfillment = till;
-        stAVAIL.safeTransferFrom(msg.sender, address(this), amount);
+        avail.safeTransferFrom(msg.sender, address(this), amount);
     }
 }

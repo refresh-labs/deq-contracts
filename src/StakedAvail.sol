@@ -35,6 +35,7 @@ contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable {
     error ZeroAmount();
 
     event AssetsUpdated(uint256 assets);
+    event UpdaterUpdated(address updater);
     event DepositoryUpdated(address depository);
     event WithdrawalHelperUpdated(address withdrawalHelper);
 
@@ -57,6 +58,13 @@ contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable {
         updater = _updater;
         depository = _depository;
         withdrawalHelper = _withdrawalHelper;
+    }
+
+    function updateUpdater(address _updater) external onlyOwner {
+        if (_updater == address(0)) revert ZeroAddress();
+        updater = _updater;
+
+        emit UpdaterUpdated(_updater);
     }
 
     function updateAssets(uint256 _assets) external {
@@ -101,7 +109,7 @@ contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable {
         assets += amount;
         _mint(msg.sender, shares);
         IERC20Permit(address(avail)).permit(msg.sender, address(this), amount, deadline, v, r, s);
-        avail.safeTransferFrom(msg.sender, address(this), amount);
+        avail.safeTransferFrom(msg.sender, depository, amount);
     }
 
     function mint(uint256 amount) external {
@@ -109,7 +117,7 @@ contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable {
         uint256 shares = previewMint(amount);
         assets += amount;
         _mint(msg.sender, shares);
-        avail.safeTransferFrom(msg.sender, address(this), amount);
+        avail.safeTransferFrom(msg.sender, depository, amount);
     }
 
     function mintTo(address to, uint256 amount) external {
@@ -117,12 +125,13 @@ contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable {
         uint256 shares = previewMint(amount);
         assets += amount;
         _mint(to, shares);
-        avail.safeTransferFrom(msg.sender, address(this), amount);
+        avail.safeTransferFrom(msg.sender, depository, amount);
     }
 
     function burn(uint256 amount) external {
         if (amount == 0) revert ZeroAmount();
+        uint256 shares = previewBurn(amount);
         _burn(msg.sender, amount);
-        withdrawalHelper.mint(msg.sender, previewBurn(amount));
+        withdrawalHelper.mint(msg.sender, shares);
     }
 }

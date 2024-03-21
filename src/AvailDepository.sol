@@ -48,8 +48,9 @@ contract AvailDepository is Ownable2StepUpgradeable {
         depository = _depository;
     }
 
-    function deposit(uint256 amount) external {
+    function deposit() external {
         if (msg.sender != depositor) revert OnlyDepositor();
+        uint256 amount = avail.balanceOf(address(this));
         avail.approve(address(bridge), amount);
         bridge.sendAVAIL(depository, amount);
     }
