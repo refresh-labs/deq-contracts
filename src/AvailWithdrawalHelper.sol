@@ -10,7 +10,6 @@ contract AvailWithdrawalHelper is ERC721Upgradeable {
 
     IERC20 public stAVAIL;
     address public fulfiller;
-
     uint256 public lastTokenId;
     uint256 public withdrawalAmount;
     uint256 public lastFulfillment;
@@ -23,9 +22,10 @@ contract AvailWithdrawalHelper is ERC721Upgradeable {
     error OnlyStakedAvail();
     error OnlyFulfiller();
 
-    function initialize(IERC20 _stAVAIL, uint256 _minWithdrawal) external initializer {
+    function initialize(IERC20 _stAVAIL, uint256 _minWithdrawal, address _fulfiller) external initializer {
         stAVAIL = _stAVAIL;
         minWithdrawal = _minWithdrawal;
+        fulfiller = _fulfiller;
         __ERC721_init("Exited Staked Avail", "EXstAVAIL");
     }
 

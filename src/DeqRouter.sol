@@ -42,6 +42,7 @@ contract DeqRouter {
         if (!success) revert SwapFailed(string(result));
         uint256 outAmount = abi.decode(result, (uint256));
         if (outAmount < minOutAmount) revert ExceedsSlippage();
+        avail.approve(address(stAVAIL), outAmount);
         stAVAIL.mintTo(msg.sender, outAmount);
     }
 
@@ -56,6 +57,7 @@ contract DeqRouter {
         if (!success) revert SwapFailed(string(result));
         uint256 outAmount = abi.decode(result, (uint256));
         if (outAmount < minOutAmount) revert ExceedsSlippage();
+        avail.approve(address(stAVAIL), outAmount);
         stAVAIL.mintTo(msg.sender, outAmount);
     }
 
@@ -69,6 +71,7 @@ contract DeqRouter {
         if (!success) revert SwapFailed(string(result));
         uint256 outAmount = abi.decode(result, (uint256));
         if (outAmount < minOutAmount) revert ExceedsSlippage();
+        avail.approve(address(stAVAIL), outAmount);
         stAVAIL.mintTo(msg.sender, outAmount);
     }
 }

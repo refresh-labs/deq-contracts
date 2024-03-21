@@ -15,7 +15,7 @@ contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable {
     using SafeERC20 for IERC20;
 
     /// @notice Address of Avail ERC20 token
-    IERC20 private constant avail = IERC20(address(0)); // TODO: update when available!
+    IERC20 public immutable avail;
     /// @notice Address of the depository contract that bridges assets to Avail
     address public depository;
     /// @notice Address of the contract that facilitates withdrawals
@@ -26,6 +26,7 @@ contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable {
     address public updater;
 
     error OnlyUpdater();
+    error InvalidUpdate();
     error ZeroAddress();
     error ZeroAmount();
 
@@ -33,7 +34,12 @@ contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable {
     event DepositoryUpdated(address depository);
     event WithdrawalHelperUpdated(address withdrawalHelper);
 
+    constructor(IERC20 _avail) {
+        avail = _avail;
+    }
+
     function initialize(address governance, address _updater, address _depository, IAvailWithdrawalHelper _withdrawalHelper) external initializer {
+        if (_updater == address(0) || _depository == address(0) || address(_withdrawalHelper) == address(0)) revert ZeroAddress();
         __ERC20_init("Staked Avail", "stAVAIL");
         __ERC20Permit_init("Staked Avail");
         _transferOwnership(governance);
@@ -44,6 +50,7 @@ contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable {
 
     function updateAssets(uint256 _assets) external {
         if (msg.sender != updater) revert OnlyUpdater();
+        if (_assets == 0) revert InvalidUpdate();
         assets = _assets;
 
         emit AssetsUpdated(_assets);
@@ -78,9 +85,12 @@ contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable {
     }
 
     function mintWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
+        if (amount == 0) revert ZeroAmount();
+        uint256 shares = previewMint(amount);
+        assets += amount;
+        _mint(msg.sender, shares);
         IERC20Permit(address(avail)).permit(msg.sender, address(this), amount, deadline, v, r, s);
         avail.safeTransferFrom(msg.sender, address(this), amount);
-        _mint(msg.sender, amount);
     }
 
     function mint(uint256 amount) external {
