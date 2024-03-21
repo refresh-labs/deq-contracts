@@ -46,7 +46,14 @@ contract DeqRouter {
         stAVAIL.mintTo(msg.sender, outAmount);
     }
 
-    function swapERC20ToStAvailWithPermit(address allowanceTarget, bytes calldata data, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
+    function swapERC20ToStAvailWithPermit(
+        address allowanceTarget,
+        bytes calldata data,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
         (IERC20 tokenIn, IERC20 tokenOut, uint256 inAmount, uint256 minOutAmount,) =
             abi.decode(data[4:], (IERC20, IERC20, uint256, uint256, Transformation[]));
         if (address(tokenOut) != address(avail)) revert InvalidOutputToken();

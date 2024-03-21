@@ -31,7 +31,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable {
 
     function previewFulfill(uint256 from, uint256 till) public view returns (uint256) {
         uint256 amount = 0;
-        for (uint256 i = from + 1; i <= till; ) {
+        for (uint256 i = from + 1; i <= till;) {
             amount += balanceOf[i];
             unchecked {
                 ++i;

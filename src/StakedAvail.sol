@@ -5,8 +5,12 @@ import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC20Permit} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import {Ownable2StepUpgradeable} from "lib/openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
-import {ERC20Upgradeable, ERC20PermitUpgradeable} from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
+import {Ownable2StepUpgradeable} from
+    "lib/openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
+import {
+    ERC20Upgradeable,
+    ERC20PermitUpgradeable
+} from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
 import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol";
 import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
 
@@ -38,13 +42,20 @@ contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable {
         avail = _avail;
     }
 
-    function initialize(address governance, address _updater, address _depository, IAvailWithdrawalHelper _withdrawalHelper) external initializer {
-        if (_updater == address(0) || _depository == address(0) || address(_withdrawalHelper) == address(0)) revert ZeroAddress();
+    function initialize(
+        address governance,
+        address _updater,
+        address _depository,
+        IAvailWithdrawalHelper _withdrawalHelper
+    ) external initializer {
+        if (_updater == address(0) || _depository == address(0) || address(_withdrawalHelper) == address(0)) {
+            revert ZeroAddress();
+        }
         __ERC20_init("Staked Avail", "stAVAIL");
         __ERC20Permit_init("Staked Avail");
         _transferOwnership(governance);
         updater = _updater;
-        depository =  _depository;
+        depository = _depository;
         withdrawalHelper = _withdrawalHelper;
     }
 
