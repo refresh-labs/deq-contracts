@@ -4,23 +4,26 @@ pragma solidity ^0.8.25;
 import {Ownable2StepUpgradeable} from
     "lib/openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 import {IAvailBridge} from "src/interfaces/IAvailBridge.sol";
+import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol";
+import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {IAvailDepository} from "src/interfaces/IAvailDepository.sol";
 
-contract AvailDepository is Ownable2StepUpgradeable {
+contract AvailDepository is Ownable2StepUpgradeable, IAvailDepository {
+    using SafeERC20 for IERC20;
+
     IERC20 public immutable avail;
     IAvailBridge public bridge;
-    bytes32 public depository;
+    IAvailWithdrawalHelper public withdrawalHelper;
     address public depositor;
-
-    error ZeroAddress();
-    error OnlyDepositor();
+    bytes32 public depository;
 
     constructor(IERC20 _avail) {
         if (address(_avail) == address(0)) revert ZeroAddress();
         avail = _avail;
     }
 
-    function initialize(address governance, IAvailBridge _bridge, address _depositor, bytes32 _depository)
+    function initialize(address governance, IAvailBridge _bridge, IAvailWithdrawalHelper _withdrawalHelper, address _depositor, bytes32 _depository)
         external
         initializer
     {
@@ -29,6 +32,7 @@ contract AvailDepository is Ownable2StepUpgradeable {
         }
         _transferOwnership(governance);
         bridge = _bridge;
+        withdrawalHelper = _withdrawalHelper;
         depositor = _depositor;
         depository = _depository;
     }
@@ -53,5 +57,10 @@ contract AvailDepository is Ownable2StepUpgradeable {
         uint256 amount = avail.balanceOf(address(this));
         avail.approve(address(bridge), amount);
         bridge.sendAVAIL(depository, amount);
+    }
+
+    function withdraw(uint256 amount) external {
+        if (msg.sender != address(withdrawalHelper)) revert OnlyWithdrawalHelper();
+        avail.safeTransfer(address(withdrawalHelper), amount);
     }
 }

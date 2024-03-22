@@ -14,7 +14,7 @@ import {
 import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol";
 import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
 
-contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable {
+contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable, IStakedAvail {
     using Math for uint256;
     using SafeERC20 for IERC20;
 
@@ -28,16 +28,6 @@ contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable {
     uint256 public assets;
     /// @notice Address of updater contract
     address public updater;
-
-    error OnlyUpdater();
-    error InvalidUpdate();
-    error ZeroAddress();
-    error ZeroAmount();
-
-    event AssetsUpdated(uint256 assets);
-    event UpdaterUpdated(address updater);
-    event DepositoryUpdated(address depository);
-    event WithdrawalHelperUpdated(address withdrawalHelper);
 
     constructor(IERC20 _avail) {
         avail = _avail;
@@ -67,9 +57,23 @@ contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable {
         emit UpdaterUpdated(_updater);
     }
 
-    function updateAssets(uint256 _assets) external {
+    function updateAssets(int256 delta) external {
         if (msg.sender != updater) revert OnlyUpdater();
-        if (_assets == 0) revert InvalidUpdate();
+        if (delta == 0) revert InvalidUpdate();
+        uint256 _assets;
+        if (delta < 0) {
+            _assets = assets - uint256(-delta);
+        } else {
+            _assets = assets + uint256(delta);
+        }
+        assets = _assets;
+
+        emit AssetsUpdated(_assets);
+    }
+
+    function updateAssetsFromWithdrawals(uint256 amount) external {
+        if (msg.sender != address(withdrawalHelper)) revert OnlyWithdrawalHelper();
+        uint256 _assets = assets - amount;
         assets = _assets;
 
         emit AssetsUpdated(_assets);

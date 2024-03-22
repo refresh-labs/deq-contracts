@@ -3,14 +3,17 @@ pragma solidity ^0.8.25;
 
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
 import {ERC721Upgradeable} from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC721/ERC721Upgradeable.sol";
+import {IAvailDepository} from "src/interfaces/IAvailDepository.sol";
 import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol";
 
 contract AvailWithdrawalHelper is ERC721Upgradeable, IAvailWithdrawalHelper {
     using SafeERC20 for IERC20;
 
     IERC20 public avail;
-    IERC20 public stAVAIL;
+    IStakedAvail public stAVAIL;
+    IAvailDepository public depository;
     address public fulfiller;
     uint256 public lastTokenId;
     uint256 public withdrawalAmount;
@@ -21,9 +24,10 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, IAvailWithdrawalHelper {
 
     error InvalidWithdrawalAmount();
 
-    function initialize(IERC20 _avail, IERC20 _stAVAIL, uint256 _minWithdrawal, address _fulfiller) external initializer {
+    function initialize(IERC20 _avail, IStakedAvail _stAVAIL, IAvailDepository _depository, uint256 _minWithdrawal, address _fulfiller) external initializer {
         avail = _avail;
         stAVAIL = _stAVAIL;
+        depository = _depository;
         minWithdrawal = _minWithdrawal;
         fulfiller = _fulfiller;
         __ERC721_init("Exited Staked Avail", "EXstAVAIL");
@@ -57,7 +61,16 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, IAvailWithdrawalHelper {
         _burn(id);
         uint256 amount = withdrawalAmounts[id];
         withdrawalAmounts[id] = 0;
-        stAVAIL.safeTransfer(ownerOf(id), amount);
+        IERC20(address(stAVAIL)).safeTransfer(ownerOf(id), amount);
+    }
+
+    function processFromDepository(uint256 till) external {
+        if (till <= lastFulfillment || till > lastTokenId) revert InvalidInput();
+        uint256 amount = previewFulfill(lastFulfillment, till);
+        withdrawalAmount -= amount;
+        lastFulfillment = till;
+        stAVAIL.updateAssetsFromWithdrawals(amount);
+        depository.withdraw(amount);
     }
 
     function fulfill(uint256 till) external {
@@ -66,6 +79,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, IAvailWithdrawalHelper {
         uint256 amount = previewFulfill(lastFulfillment, till);
         withdrawalAmount -= amount;
         lastFulfillment = till;
+        stAVAIL.updateAssetsFromWithdrawals(amount);
         avail.safeTransferFrom(msg.sender, address(this), amount);
     }
 }
