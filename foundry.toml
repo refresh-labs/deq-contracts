@@ -8,6 +8,9 @@ via_ir = true
 solc_version = "0.8.25"
 evm_version = "cancun"
 
+[profile.default.fuzz]
+max_test_rejects = 999999
+
 [profile.intense.fuzz]
 max_test_rejects = 999999
 runs = 10000

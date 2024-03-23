@@ -88,6 +88,10 @@ contract StakedAvailTest is Test {
         avail.mint(from, amount1 + amount2);
         avail.approve(address(stakedAvail), amount1 + amount2);
         stakedAvail.mint(amount1);
+        assertEq(stakedAvail.balanceOf(from), amount1);
+        assertEq(stakedAvail.assets(), amount1);
+        assertEq(avail.balanceOf(address(stakedAvail)), 0);
+        assertEq(avail.balanceOf(address(depository)), amount1);
         vm.startPrank(owner);
         // inflate value of stAVAIL
         stakedAvail.updateAssets(int256(random));
@@ -99,24 +103,31 @@ contract StakedAvailTest is Test {
         assertEq(avail.balanceOf(address(depository)), amount1 + amount2);
     }
 
-    function testMint4(int248 amountA, int248 amountB, int248 rand) external {
-        int256 random = rand;
-        vm.assume(amountA > 0 && amountB > 0 && rand < 0 && uint256(-random) < uint256(int256(amountA)));
+    function testMint4(uint248 amountA, uint248 amountB) external {
+        // we add a decent chunk of amountB otherwise it has no effect on deflated amount
+        vm.assume(amountA >= 2 && amountB > 2);
         // this is to prevent solidity from adding them as uint248
-        uint256 amount1 = uint256(int256(amountA));
-        uint256 amount2 = uint256(int256(amountB));
+        uint256 amount1 = uint256(amountA);
+        uint256 amount2 = uint256(amountB);
         address from = makeAddr("from");
         vm.startPrank(from);
         avail.mint(from, amount1 + amount2);
         avail.approve(address(stakedAvail), amount1 + amount2);
         stakedAvail.mint(amount1);
+        uint256 prevBalance = stakedAvail.balanceOf(from);
+        assertEq(stakedAvail.balanceOf(from), amount1);
+        assertEq(stakedAvail.assets(), amount1);
+        assertEq(avail.balanceOf(address(stakedAvail)), 0);
+        assertEq(avail.balanceOf(address(depository)), amount1);
         vm.startPrank(owner);
+        uint256 reduction = amount1 / 2;
         // deflate value of stAVAIL
-        stakedAvail.updateAssets(random);
+        stakedAvail.updateAssets(-int256(amount1 / 2));
         vm.startPrank(from);
         stakedAvail.mint(amount2);
-        assertApproxEqRel(stakedAvail.balanceOf(from), amount1 + amount2, 1e16);
-        assertEq(stakedAvail.assets(), amount1 + amount2);
+        uint256 diffBalance = stakedAvail.balanceOf(from) - prevBalance;
+        assertGt(diffBalance, amount2);
+        assertEq(stakedAvail.assets(), amount1 + amount2 - reduction);
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
         assertEq(avail.balanceOf(address(depository)), amount1 + amount2);
     }
@@ -137,20 +148,56 @@ contract StakedAvailTest is Test {
 
     function testBurn(uint256 amount) external {
         // the < is needed because it overflows our exchange rate calculation otherwise
-        vm.assume(amount != 0 && amount > withdrawalHelper.minWithdrawal() && amount < type(uint256).max);
-        console.log("amount", amount);
-        console.log("lastTokenId", withdrawalHelper.lastTokenId());
+        vm.assume(amount != 0 && amount >= withdrawalHelper.minWithdrawal() && amount < type(uint256).max);
         address from = makeAddr("from");
         vm.startPrank(from);
         avail.mint(from, amount);
         avail.approve(address(stakedAvail), amount);
         stakedAvail.mint(amount);
         stakedAvail.burn(amount);
-        console.log("lastTokenId", withdrawalHelper.lastTokenId());
         assertEq(withdrawalHelper.withdrawalAmounts(1), amount);
         assertEq(withdrawalHelper.ownerOf(1), from);
         assertEq(stakedAvail.balanceOf(from), 0);
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
         assertEq(avail.balanceOf(address(depository)), amount);
+    }
+
+    function testBurn2(uint256 amount, uint256 burnAmt) external {
+        // the < is needed because it overflows our exchange rate calculation otherwise
+        vm.assume(amount != 0 && burnAmt >= withdrawalHelper.minWithdrawal() && amount < type(uint256).max && burnAmt <= amount);
+        address from = makeAddr("from");
+        vm.startPrank(from);
+        avail.mint(from, amount);
+        avail.approve(address(stakedAvail), amount);
+        stakedAvail.mint(amount);
+        stakedAvail.burn(burnAmt);
+        assertEq(withdrawalHelper.withdrawalAmounts(1), burnAmt);
+        assertEq(withdrawalHelper.ownerOf(1), from);
+        assertEq(stakedAvail.balanceOf(from), amount - burnAmt);
+        assertEq(avail.balanceOf(address(stakedAvail)), 0);
+        assertEq(avail.balanceOf(address(depository)), amount);
+    }
+
+    function testBurn3(uint256 amount, uint248 burnAmtA, uint248 burnAmtB) external {
+        uint256 burnAmt1 = uint256(burnAmtA);
+        uint256 burnAmt2 = uint256(burnAmtB);
+        // the < is needed because it overflows our exchange rate calculation otherwise
+        vm.assume(amount != 0 && burnAmtA > withdrawalHelper.minWithdrawal() && burnAmtB > withdrawalHelper.minWithdrawal() && amount < type(uint256).max && (burnAmt1 + burnAmt2) < amount);
+        address from = makeAddr("from");
+        vm.startPrank(from);
+        avail.mint(from, amount);
+        avail.approve(address(stakedAvail), amount);
+        stakedAvail.mint(amount);
+        assertEq(avail.balanceOf(address(stakedAvail)), 0);
+        assertEq(avail.balanceOf(address(depository)), amount);
+        stakedAvail.burn(burnAmtA);
+        assertEq(withdrawalHelper.withdrawalAmounts(1), burnAmt1);
+        assertEq(withdrawalHelper.ownerOf(1), from);
+        assertEq(stakedAvail.balanceOf(from), amount - burnAmt1);
+        stakedAvail.burn(burnAmtB);
+        // burning inflates the value of stAVL
+        assertGe(withdrawalHelper.withdrawalAmounts(2), burnAmt2);
+        assertEq(withdrawalHelper.ownerOf(2), from);
+        assertEq(stakedAvail.balanceOf(from), amount - burnAmt1 - burnAmt2);
     }
 }
