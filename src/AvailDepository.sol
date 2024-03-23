@@ -23,10 +23,13 @@ contract AvailDepository is Ownable2StepUpgradeable, IAvailDepository {
         avail = _avail;
     }
 
-    function initialize(address governance, IAvailBridge _bridge, IAvailWithdrawalHelper _withdrawalHelper, address _depositor, bytes32 _depository)
-        external
-        initializer
-    {
+    function initialize(
+        address governance,
+        IAvailBridge _bridge,
+        IAvailWithdrawalHelper _withdrawalHelper,
+        address _depositor,
+        bytes32 _depository
+    ) external initializer {
         if (address(_bridge) == address(0) || _depositor == address(0) || _depository == bytes32(0)) {
             revert ZeroAddress();
         }

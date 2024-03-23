@@ -24,7 +24,13 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, IAvailWithdrawalHelper {
 
     error InvalidWithdrawalAmount();
 
-    function initialize(IERC20 _avail, IStakedAvail _stAVAIL, IAvailDepository _depository, uint256 _minWithdrawal, address _fulfiller) external initializer {
+    function initialize(
+        IERC20 _avail,
+        IStakedAvail _stAVAIL,
+        IAvailDepository _depository,
+        uint256 _minWithdrawal,
+        address _fulfiller
+    ) external initializer {
         avail = _avail;
         stAVAIL = _stAVAIL;
         depository = _depository;

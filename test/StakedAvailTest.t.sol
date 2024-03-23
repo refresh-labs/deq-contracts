@@ -3,7 +3,8 @@ pragma solidity ^0.8.25;
 
 import {Test} from "lib/forge-std/src/Test.sol";
 import {ProxyAdmin} from "lib/openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
-import {TransparentUpgradeableProxy} from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {TransparentUpgradeableProxy} from
+    "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {StakedAvail} from "src/StakedAvail.sol";
 import {MockERC20} from "src/mocks/MockERC20.sol";
 import {AvailDepository} from "src/AvailDepository.sol";
@@ -29,7 +30,8 @@ contract StakedAvailTest is Test {
         address depositoryImpl = address(new AvailDepository(avail));
         depository = AvailDepository(address(new TransparentUpgradeableProxy(depositoryImpl, msg.sender, "")));
         address withdrawalHelperImpl = address(new AvailWithdrawalHelper());
-        withdrawalHelper = AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, msg.sender, "")));
+        withdrawalHelper =
+            AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, msg.sender, "")));
         withdrawalHelper.initialize(avail, stakedAvail, depository, 1 ether, msg.sender);
         depository.initialize(msg.sender, bridge, withdrawalHelper, msg.sender, bytes32(abi.encode(1)));
         stakedAvail.initialize(msg.sender, msg.sender, address(depository), withdrawalHelper);
@@ -164,7 +166,10 @@ contract StakedAvailTest is Test {
 
     function testBurn2(uint256 amount, uint256 burnAmt) external {
         // the < is needed because it overflows our exchange rate calculation otherwise
-        vm.assume(amount != 0 && burnAmt >= withdrawalHelper.minWithdrawal() && amount < type(uint256).max && burnAmt <= amount);
+        vm.assume(
+            amount != 0 && burnAmt >= withdrawalHelper.minWithdrawal() && amount < type(uint256).max
+                && burnAmt <= amount
+        );
         address from = makeAddr("from");
         vm.startPrank(from);
         avail.mint(from, amount);
@@ -182,7 +187,10 @@ contract StakedAvailTest is Test {
         uint256 burnAmt1 = uint256(burnAmtA);
         uint256 burnAmt2 = uint256(burnAmtB);
         // the < is needed because it overflows our exchange rate calculation otherwise
-        vm.assume(amount != 0 && burnAmtA > withdrawalHelper.minWithdrawal() && burnAmtB > withdrawalHelper.minWithdrawal() && amount < type(uint256).max && (burnAmt1 + burnAmt2) < amount);
+        vm.assume(
+            amount != 0 && burnAmtA > withdrawalHelper.minWithdrawal() && burnAmtB > withdrawalHelper.minWithdrawal()
+                && amount < type(uint256).max && (burnAmt1 + burnAmt2) < amount
+        );
         address from = makeAddr("from");
         vm.startPrank(from);
         avail.mint(from, amount);
