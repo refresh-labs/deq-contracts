@@ -21,7 +21,8 @@ contract DeployScript is Script {
         address governance = vm.envAddress("GOVERNANCE");
         address avail = vm.envAddress("AVAIL");
         address depository = address(new AvailDepository(IERC20(avail)));
-        AvailDepository availDepository = AvailDepository(address(new TransparentUpgradeableProxy(depository, admin, "")));
+        AvailDepository availDepository =
+            AvailDepository(address(new TransparentUpgradeableProxy(depository, admin, "")));
         address stAVAILimpl = address(new StakedAvail(IERC20(avail)));
         StakedAvail stAVAIL = StakedAvail(address(new TransparentUpgradeableProxy(stAVAILimpl, admin, "")));
         stAVAIL.initialize(governance, updater, admin, IAvailWithdrawalHelper(address(0)));

@@ -13,7 +13,8 @@ import {
 } from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
 import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol";
 import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
-import {AccessControlDefaultAdminRulesUpgradeable} from "lib/openzeppelin-contracts-upgradeable/contracts/access/extensions/AccessControlDefaultAdminRulesUpgradeable.sol";
+import {AccessControlDefaultAdminRulesUpgradeable} from
+    "lib/openzeppelin-contracts-upgradeable/contracts/access/extensions/AccessControlDefaultAdminRulesUpgradeable.sol";
 
 contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUpgradeable, IStakedAvail {
     using Math for uint256;

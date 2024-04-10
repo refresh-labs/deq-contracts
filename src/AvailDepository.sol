@@ -8,8 +8,8 @@ import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol"
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IAvailDepository} from "src/interfaces/IAvailDepository.sol";
-import {AccessControlDefaultAdminRulesUpgradeable} from "lib/openzeppelin-contracts-upgradeable/contracts/access/extensions/AccessControlDefaultAdminRulesUpgradeable.sol";
-
+import {AccessControlDefaultAdminRulesUpgradeable} from
+    "lib/openzeppelin-contracts-upgradeable/contracts/access/extensions/AccessControlDefaultAdminRulesUpgradeable.sol";
 
 contract AvailDepository is AccessControlDefaultAdminRulesUpgradeable, IAvailDepository {
     using SafeERC20 for IERC20;
@@ -26,12 +26,10 @@ contract AvailDepository is AccessControlDefaultAdminRulesUpgradeable, IAvailDep
         avail = _avail;
     }
 
-    function initialize(
-        address governance,
-        IAvailBridge _bridge,
-        address _depositor,
-        bytes32 _depository
-    ) external initializer {
+    function initialize(address governance, IAvailBridge _bridge, address _depositor, bytes32 _depository)
+        external
+        initializer
+    {
         if (address(_bridge) == address(0) || _depositor == address(0) || _depository == bytes32(0)) {
             revert ZeroAddress();
         }
@@ -51,7 +49,7 @@ contract AvailDepository is AccessControlDefaultAdminRulesUpgradeable, IAvailDep
         depository = _depository;
     }
 
-    function deposit() onlyRole(DEPOSITOR_ROLE) external {
+    function deposit() external onlyRole(DEPOSITOR_ROLE) {
         uint256 amount = avail.balanceOf(address(this));
         avail.approve(address(bridge), amount);
         bridge.sendAVAIL(depository, amount);
