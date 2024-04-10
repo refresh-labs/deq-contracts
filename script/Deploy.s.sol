@@ -14,7 +14,7 @@ import {Script} from "forge-std/Script.sol";
 contract DeployScript is Script {
     function run() external {
         vm.startBroadcast();
-        address admin = vm.envAddress("ADMIN");
+
         IAvailBridge bridge = IAvailBridge(vm.envAddress("BRIDGE"));
         address updater = vm.envAddress("UPDATER");
         address governance = vm.envAddress("GOVERNANCE");
@@ -22,12 +22,12 @@ contract DeployScript is Script {
         bytes32 availDepository = vm.envBytes32("DEPOSITORY");
         address depositoryImpl = address(new AvailDepository(IERC20(avail)));
         AvailDepository depository =
-            AvailDepository(address(new TransparentUpgradeableProxy(depositoryImpl, admin, "")));
+            AvailDepository(address(new TransparentUpgradeableProxy(depositoryImpl, governance, "")));
         address withdrawalHelperImpl = address(new AvailWithdrawalHelper(IERC20(avail)));
         AvailWithdrawalHelper withdrawalHelper =
-            AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, admin, "")));
+            AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, governance, "")));
         address stAVAILimpl = address(new StakedAvail(IERC20(avail)));
-        StakedAvail stAVAIL = StakedAvail(address(new TransparentUpgradeableProxy(stAVAILimpl, admin, "")));
+        StakedAvail stAVAIL = StakedAvail(address(new TransparentUpgradeableProxy(stAVAILimpl, governance, "")));
         depository.initialize(governance, bridge, updater, availDepository);
         withdrawalHelper.initialize(governance, stAVAIL, 1 ether);
         stAVAIL.initialize(governance, updater, address(depository), withdrawalHelper);
