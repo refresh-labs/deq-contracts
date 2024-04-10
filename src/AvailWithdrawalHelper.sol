@@ -39,10 +39,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
         avail = _avail;
     }
 
-    function initialize(address governance, IStakedAvail _stAVAIL, uint256 _minWithdrawal)
-        external
-        initializer
-    {
+    function initialize(address governance, IStakedAvail _stAVAIL, uint256 _minWithdrawal) external initializer {
         if (governance == address(0) || address(_stAVAIL) == address(0)) revert ZeroAddress();
         stAVAIL = _stAVAIL;
         minWithdrawal = _minWithdrawal;
