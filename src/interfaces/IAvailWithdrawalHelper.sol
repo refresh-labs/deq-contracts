@@ -17,8 +17,7 @@ interface IAvailWithdrawalHelper is IERC721 {
     function lastFulfillment() external view returns (uint256);
     function minWithdrawal() external view returns (uint256);
     function withdrawalAmounts(uint256 id) external view returns (uint256 amount);
-    function previewFulfill(uint256 from, uint256 till) external view returns (uint256 amount);
+    function previewFulfill(uint256 till) external view returns (uint256 amount);
     function mint(address account, uint256 amount) external;
     function burn(uint256 id) external;
-    function fulfill(uint256 till) external;
 }

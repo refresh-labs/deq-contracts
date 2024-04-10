@@ -13,10 +13,13 @@ import {
 } from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
 import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol";
 import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
+import {AccessControlDefaultAdminRulesUpgradeable} from "lib/openzeppelin-contracts-upgradeable/contracts/access/extensions/AccessControlDefaultAdminRulesUpgradeable.sol";
 
-contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable, IStakedAvail {
+contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUpgradeable, IStakedAvail {
     using Math for uint256;
     using SafeERC20 for IERC20;
+
+    bytes32 private constant UPDATER_ROLE = keccak256("UPDATER_ROLE");
 
     /// @notice Address of Avail ERC20 token
     IERC20 public immutable avail;
@@ -26,8 +29,6 @@ contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable, IStaked
     IAvailWithdrawalHelper public withdrawalHelper;
     /// @notice Amount of assets staked (in wei)
     uint256 public assets;
-    /// @notice Address of updater contract
-    address public updater;
 
     constructor(IERC20 _avail) {
         avail = _avail;
@@ -42,23 +43,15 @@ contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable, IStaked
         if (_updater == address(0) || _depository == address(0) || address(_withdrawalHelper) == address(0)) {
             revert ZeroAddress();
         }
-        __ERC20_init("Staked Avail", "stAVAIL");
-        __ERC20Permit_init("Staked Avail");
-        _transferOwnership(governance);
-        updater = _updater;
         depository = _depository;
         withdrawalHelper = _withdrawalHelper;
+        __ERC20_init("Staked Avail", "stAVAIL");
+        __ERC20Permit_init("Staked Avail");
+        __AccessControlDefaultAdminRules_init(0, governance);
+        _grantRole(UPDATER_ROLE, _updater);
     }
 
-    function updateUpdater(address _updater) external onlyOwner {
-        if (_updater == address(0)) revert ZeroAddress();
-        updater = _updater;
-
-        emit UpdaterUpdated(_updater);
-    }
-
-    function updateAssets(int256 delta) external {
-        if (msg.sender != updater) revert OnlyUpdater();
+    function updateAssets(int256 delta) external onlyRole(UPDATER_ROLE) {
         if (delta == 0) revert InvalidUpdate();
         uint256 _assets;
         if (delta < 0) {
@@ -79,20 +72,20 @@ contract StakedAvail is ERC20PermitUpgradeable, Ownable2StepUpgradeable, IStaked
         emit AssetsUpdated(_assets);
     }
 
-    function forceUpdateAssets(uint256 _assets) external onlyOwner {
+    function forceUpdateAssets(uint256 _assets) external onlyRole(DEFAULT_ADMIN_ROLE) {
         assets = _assets;
 
         emit AssetsUpdated(_assets);
     }
 
-    function updateDepository(address _depository) external onlyOwner {
+    function updateDepository(address _depository) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_depository == address(0)) revert ZeroAddress();
         depository = _depository;
 
         emit DepositoryUpdated(_depository);
     }
 
-    function updateWithdrawalHelper(IAvailWithdrawalHelper _withdrawalHelper) external onlyOwner {
+    function updateWithdrawalHelper(IAvailWithdrawalHelper _withdrawalHelper) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (address(_withdrawalHelper) == address(0)) revert ZeroAddress();
         withdrawalHelper = _withdrawalHelper;
 

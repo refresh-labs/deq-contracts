@@ -5,7 +5,7 @@ import {Test} from "lib/forge-std/src/Test.sol";
 import {ProxyAdmin} from "lib/openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
 import {TransparentUpgradeableProxy} from
     "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {StakedAvail} from "src/StakedAvail.sol";
+import {IERC20, StakedAvail} from "src/StakedAvail.sol";
 import {MockERC20} from "src/mocks/MockERC20.sol";
 import {AvailDepository} from "src/AvailDepository.sol";
 import {MockAvailBridge} from "src/mocks/MockAvailBridge.sol";
@@ -32,15 +32,15 @@ contract StakedAvailTest is Test {
         address withdrawalHelperImpl = address(new AvailWithdrawalHelper());
         withdrawalHelper =
             AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, msg.sender, "")));
-        withdrawalHelper.initialize(avail, stakedAvail, depository, 1 ether, msg.sender);
-        depository.initialize(msg.sender, bridge, withdrawalHelper, msg.sender, bytes32(abi.encode(1)));
+        withdrawalHelper.initialize(msg.sender, avail, stakedAvail, 1 ether);
+        depository.initialize(msg.sender, bridge, msg.sender, bytes32(abi.encode(1)));
         stakedAvail.initialize(msg.sender, msg.sender, address(depository), withdrawalHelper);
     }
 
     function test_initialize() external view {
         assertEq(address(stakedAvail.avail()), address(avail));
         assertEq(stakedAvail.owner(), owner);
-        assertEq(stakedAvail.updater(), owner);
+        assert(stakedAvail.hasRole(keccak256("UPDATER_ROLE"), owner));
         assertEq(stakedAvail.depository(), address(depository));
         assertEq(address(stakedAvail.withdrawalHelper()), address(withdrawalHelper));
     }
@@ -156,6 +156,10 @@ contract StakedAvailTest is Test {
         avail.mint(from, amount);
         avail.approve(address(stakedAvail), amount);
         stakedAvail.mint(amount);
+        assertEq(stakedAvail.balanceOf(from), amount);
+        assertEq(stakedAvail.assets(), amount);
+        assertEq(avail.balanceOf(address(stakedAvail)), 0);
+        assertEq(avail.balanceOf(address(depository)), amount);
         stakedAvail.burn(amount);
         assertEq(withdrawalHelper.withdrawalAmounts(1), amount);
         assertEq(withdrawalHelper.ownerOf(1), from);
@@ -175,6 +179,10 @@ contract StakedAvailTest is Test {
         avail.mint(from, amount);
         avail.approve(address(stakedAvail), amount);
         stakedAvail.mint(amount);
+        assertEq(stakedAvail.balanceOf(from), amount);
+        assertEq(stakedAvail.assets(), amount);
+        assertEq(avail.balanceOf(address(stakedAvail)), 0);
+        assertEq(avail.balanceOf(address(depository)), amount);
         stakedAvail.burn(burnAmt);
         assertEq(withdrawalHelper.withdrawalAmounts(1), burnAmt);
         assertEq(withdrawalHelper.ownerOf(1), from);
@@ -196,6 +204,8 @@ contract StakedAvailTest is Test {
         avail.mint(from, amount);
         avail.approve(address(stakedAvail), amount);
         stakedAvail.mint(amount);
+        assertEq(stakedAvail.balanceOf(from), amount);
+        assertEq(stakedAvail.assets(), amount);
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
         assertEq(avail.balanceOf(address(depository)), amount);
         stakedAvail.burn(burnAmtA);
@@ -207,5 +217,39 @@ contract StakedAvailTest is Test {
         assertGe(withdrawalHelper.withdrawalAmounts(2), burnAmt2);
         assertEq(withdrawalHelper.ownerOf(2), from);
         assertEq(stakedAvail.balanceOf(from), amount - burnAmt1 - burnAmt2);
+    }
+
+    function testMintAndBurnTwice(uint248 mintAmt, uint248 burnAmt) external {
+        vm.assume(mintAmt != 0 && burnAmt >= withdrawalHelper.minWithdrawal() && burnAmt <= mintAmt);
+        address from = makeAddr("from");
+        vm.startPrank(from);
+        avail.mint(from, mintAmt);
+        avail.approve(address(stakedAvail), mintAmt);
+        stakedAvail.mint(mintAmt);
+        assertEq(stakedAvail.balanceOf(from), mintAmt);
+        assertEq(stakedAvail.assets(), mintAmt);
+        assertEq(avail.balanceOf(address(stakedAvail)), 0);
+        assertEq(avail.balanceOf(address(depository)), mintAmt);
+        stakedAvail.burn(burnAmt);
+        assertEq(withdrawalHelper.withdrawalAmounts(1), burnAmt);
+        assertEq(withdrawalHelper.ownerOf(1), from);
+        assertEq(stakedAvail.balanceOf(from), mintAmt - burnAmt);
+        assertEq(avail.balanceOf(address(stakedAvail)), 0);
+        assertEq(avail.balanceOf(address(depository)), mintAmt);
+        avail.mint(from, mintAmt);
+        avail.approve(address(stakedAvail), mintAmt);
+        vm.expectEmit(true, true, false, true, address(stakedAvail));
+        emit IERC20.Transfer(address(0), from, mintAmt);
+        stakedAvail.mint(mintAmt);
+        assertEq(stakedAvail.balanceOf(from), uint256(uint256(mintAmt) * 2) - uint256(burnAmt));
+        assertEq(stakedAvail.assets(), (mintAmt * 2));
+        assertEq(avail.balanceOf(address(stakedAvail)), 0);
+        assertEq(avail.balanceOf(address(depository)), mintAmt);
+        stakedAvail.burn(burnAmt);
+        assertEq(withdrawalHelper.withdrawalAmounts(2), burnAmt);
+        assertEq(withdrawalHelper.ownerOf(2), from);
+        assertEq(stakedAvail.balanceOf(from), mintAmt - burnAmt);
+        assertEq(avail.balanceOf(address(stakedAvail)), 0);
+        assertEq(avail.balanceOf(address(depository)), burnAmt);
     }
 }

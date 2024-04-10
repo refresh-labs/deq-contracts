@@ -8,13 +8,16 @@ import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol"
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IAvailDepository} from "src/interfaces/IAvailDepository.sol";
+import {AccessControlDefaultAdminRulesUpgradeable} from "lib/openzeppelin-contracts-upgradeable/contracts/access/extensions/AccessControlDefaultAdminRulesUpgradeable.sol";
 
-contract AvailDepository is Ownable2StepUpgradeable, IAvailDepository {
+
+contract AvailDepository is AccessControlDefaultAdminRulesUpgradeable, IAvailDepository {
     using SafeERC20 for IERC20;
+
+    bytes32 private constant DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE");
 
     IERC20 public immutable avail;
     IAvailBridge public bridge;
-    IAvailWithdrawalHelper public withdrawalHelper;
     address public depositor;
     bytes32 public depository;
 
@@ -26,44 +29,31 @@ contract AvailDepository is Ownable2StepUpgradeable, IAvailDepository {
     function initialize(
         address governance,
         IAvailBridge _bridge,
-        IAvailWithdrawalHelper _withdrawalHelper,
         address _depositor,
         bytes32 _depository
     ) external initializer {
         if (address(_bridge) == address(0) || _depositor == address(0) || _depository == bytes32(0)) {
             revert ZeroAddress();
         }
-        _transferOwnership(governance);
         bridge = _bridge;
-        withdrawalHelper = _withdrawalHelper;
-        depositor = _depositor;
         depository = _depository;
+        __AccessControlDefaultAdminRules_init(0, governance);
+        _grantRole(DEPOSITOR_ROLE, _depositor);
     }
 
-    function updateBridge(IAvailBridge _bridge) external onlyOwner {
+    function updateBridge(IAvailBridge _bridge) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (address(_bridge) == address(0)) revert ZeroAddress();
         bridge = _bridge;
     }
 
-    function updateDepositor(address _depositor) external onlyOwner {
-        if (_depositor == address(0)) revert ZeroAddress();
-        depositor = _depositor;
-    }
-
-    function updateDepository(bytes32 _depository) external onlyOwner {
+    function updateDepository(bytes32 _depository) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_depository == bytes32(0)) revert ZeroAddress();
         depository = _depository;
     }
 
-    function deposit() external {
-        if (msg.sender != depositor) revert OnlyDepositor();
+    function deposit() onlyRole(DEPOSITOR_ROLE) external {
         uint256 amount = avail.balanceOf(address(this));
         avail.approve(address(bridge), amount);
         bridge.sendAVAIL(depository, amount);
-    }
-
-    function withdraw(uint256 amount) external {
-        if (msg.sender != address(withdrawalHelper)) revert OnlyWithdrawalHelper();
-        avail.safeTransfer(address(withdrawalHelper), amount);
     }
 }
