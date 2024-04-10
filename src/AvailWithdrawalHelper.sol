@@ -22,7 +22,7 @@ import {Ownable2StepUpgradeable} from
 contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IAvailWithdrawalHelper {
     using SafeERC20 for IERC20;
 
-    IERC20 public avail;
+    IERC20 public immutable avail;
     IStakedAvail public stAVAIL;
     uint256 public lastTokenId;
     uint256 public withdrawalAmount;
@@ -31,13 +31,19 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
 
     mapping(uint256 => uint256) public withdrawalAmounts;
 
+    error ZeroAddress();
     error InvalidWithdrawalAmount();
 
-    function initialize(address governance, IERC20 _avail, IStakedAvail _stAVAIL, uint256 _minWithdrawal)
+    constructor(IERC20 _avail) {
+        if (address(_avail) == address(0)) revert ZeroAddress();
+        avail = _avail;
+    }
+
+    function initialize(address governance, IStakedAvail _stAVAIL, uint256 _minWithdrawal)
         external
         initializer
     {
-        avail = _avail;
+        if (governance == address(0) || address(_stAVAIL) == address(0)) revert ZeroAddress();
         stAVAIL = _stAVAIL;
         minWithdrawal = _minWithdrawal;
         __ERC721_init("Exited Staked Avail", "exStAVAIL");

@@ -29,10 +29,10 @@ contract StakedAvailTest is Test {
         stakedAvail = StakedAvail(address(new TransparentUpgradeableProxy(impl, msg.sender, "")));
         address depositoryImpl = address(new AvailDepository(avail));
         depository = AvailDepository(address(new TransparentUpgradeableProxy(depositoryImpl, msg.sender, "")));
-        address withdrawalHelperImpl = address(new AvailWithdrawalHelper());
+        address withdrawalHelperImpl = address(new AvailWithdrawalHelper(avail));
         withdrawalHelper =
             AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, msg.sender, "")));
-        withdrawalHelper.initialize(msg.sender, avail, stakedAvail, 1 ether);
+        withdrawalHelper.initialize(msg.sender, stakedAvail, 1 ether);
         depository.initialize(msg.sender, bridge, msg.sender, bytes32(abi.encode(1)));
         stakedAvail.initialize(msg.sender, msg.sender, address(depository), withdrawalHelper);
     }

@@ -32,6 +32,7 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
     uint256 public assets;
 
     constructor(IERC20 _avail) {
+        if (address(_avail) == address(0)) revert ZeroAddress();
         avail = _avail;
     }
 

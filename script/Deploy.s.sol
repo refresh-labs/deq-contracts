@@ -15,17 +15,22 @@ contract DeployScript is Script {
     function run() external {
         vm.startBroadcast();
         address admin = vm.envAddress("ADMIN");
-        address vectorx = vm.envAddress("VECTORX");
         IAvailBridge bridge = IAvailBridge(vm.envAddress("BRIDGE"));
         address updater = vm.envAddress("UPDATER");
         address governance = vm.envAddress("GOVERNANCE");
         address avail = vm.envAddress("AVAIL");
-        address depository = address(new AvailDepository(IERC20(avail)));
-        AvailDepository availDepository =
-            AvailDepository(address(new TransparentUpgradeableProxy(depository, admin, "")));
+        bytes32 availDepository = vm.envBytes32("DEPOSITORY");
+        address depositoryImpl = address(new AvailDepository(IERC20(avail)));
+        AvailDepository depository =
+            AvailDepository(address(new TransparentUpgradeableProxy(depositoryImpl, admin, "")));
+        address withdrawalHelperImpl = address(new AvailWithdrawalHelper(IERC20(avail)));
+        AvailWithdrawalHelper withdrawalHelper =
+            AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, admin, "")));
         address stAVAILimpl = address(new StakedAvail(IERC20(avail)));
         StakedAvail stAVAIL = StakedAvail(address(new TransparentUpgradeableProxy(stAVAILimpl, admin, "")));
-        stAVAIL.initialize(governance, updater, admin, IAvailWithdrawalHelper(address(0)));
+        depository.initialize(governance, bridge, updater, availDepository);
+        withdrawalHelper.initialize(governance, stAVAIL, 1 ether);
+        stAVAIL.initialize(governance, updater, address(depository), withdrawalHelper);
         vm.stopBroadcast();
     }
 }
