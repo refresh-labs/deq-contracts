@@ -10,6 +10,7 @@ import {DeqRouter} from "src/DeqRouter.sol";
 import {IAvailWithdrawalHelper, AvailWithdrawalHelper} from "src/AvailWithdrawalHelper.sol";
 import {AvailDepository} from "src/AvailDepository.sol";
 import {Script} from "forge-std/Script.sol";
+import {console} from "forge-std/console.sol";
 
 contract DeployScript is Script {
     function run() external {
@@ -32,5 +33,10 @@ contract DeployScript is Script {
         withdrawalHelper.initialize(governance, stAVAIL, 1 ether);
         stAVAIL.initialize(governance, updater, address(depository), withdrawalHelper);
         vm.stopBroadcast();
+        console.log("  ############################################################  ");
+        console.log("Deployed AvailDepository at:", address(depository));
+        console.log("Deployed AvailWithdrawalHelper at:", address(withdrawalHelper));
+        console.log("Deployed StakedAvail at:", address(stAVAIL));
+        console.log("  ############################################################  ");
     }
 }
