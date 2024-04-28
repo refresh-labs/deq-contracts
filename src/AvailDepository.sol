@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.25;
+pragma solidity 0.8.25;
 
 import {Ownable2StepUpgradeable} from
     "lib/openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
@@ -51,7 +51,7 @@ contract AvailDepository is AccessControlDefaultAdminRulesUpgradeable, IAvailDep
 
     function deposit() external onlyRole(DEPOSITOR_ROLE) {
         uint256 amount = avail.balanceOf(address(this));
-        avail.approve(address(bridge), amount);
+        if (!avail.approve(address(bridge), amount)) revert ApprovalFailed();
         bridge.sendAVAIL(depository, amount);
     }
 }

@@ -1,32 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.25;
+pragma solidity 0.8.25;
 
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC20Permit} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
+import {IDeqRouter} from "src/interfaces/IDeqRouter.sol";
 
-contract DeqRouter {
+contract DeqRouter is IDeqRouter {
     using SafeERC20 for IERC20;
-
-    struct Transformation {
-        uint32 _uint32;
-        bytes _bytes;
-    }
 
     address public immutable swapRouter;
     IERC20 public immutable avail;
     IStakedAvail public immutable stAVAIL;
 
-    error ZeroAddress();
-    error InvalidInputToken();
-    error InvalidOutputToken();
-    error InvalidInputAmount();
-    error ExceedsSlippage();
-    error SwapFailed(string msg);
-
     constructor(address _swapRouter, IERC20 _avail, IStakedAvail _stAVAIL) {
-        if (_swapRouter == address(0) || address(_stAVAIL) == address(0)) revert ZeroAddress();
+        if (_swapRouter == address(0) || address(_avail) == address(0) || address(_stAVAIL) == address(0)) revert ZeroAddress();
         swapRouter = _swapRouter;
         avail = _avail;
         stAVAIL = _stAVAIL;
@@ -42,7 +31,7 @@ contract DeqRouter {
         if (!success) revert SwapFailed(string(result));
         uint256 outAmount = abi.decode(result, (uint256));
         if (outAmount < minOutAmount) revert ExceedsSlippage();
-        avail.approve(address(stAVAIL), outAmount);
+        if(!avail.approve(address(stAVAIL), outAmount)) revert ApprovalFailed();
         stAVAIL.mintTo(msg.sender, outAmount);
     }
 
@@ -57,14 +46,14 @@ contract DeqRouter {
         (IERC20 tokenIn, IERC20 tokenOut, uint256 inAmount, uint256 minOutAmount,) =
             abi.decode(data[4:], (IERC20, IERC20, uint256, uint256, Transformation[]));
         if (address(tokenOut) != address(avail)) revert InvalidOutputToken();
-        IERC20Permit(address(tokenIn)).permit(msg.sender, address(this), inAmount, deadline, v, r, s);
+        IERC20Permit(address(tokenIn)).permit(msg.sender, address(this), inAmount, deadline, v, r, s); 
         tokenIn.safeTransferFrom(msg.sender, address(this), inAmount);
         tokenIn.forceApprove(allowanceTarget, inAmount);
         (bool success, bytes memory result) = swapRouter.call(data);
         if (!success) revert SwapFailed(string(result));
         uint256 outAmount = abi.decode(result, (uint256));
         if (outAmount < minOutAmount) revert ExceedsSlippage();
-        avail.approve(address(stAVAIL), outAmount);
+        if (!avail.approve(address(stAVAIL), outAmount)) revert ApprovalFailed();
         stAVAIL.mintTo(msg.sender, outAmount);
     }
 
@@ -78,7 +67,7 @@ contract DeqRouter {
         if (!success) revert SwapFailed(string(result));
         uint256 outAmount = abi.decode(result, (uint256));
         if (outAmount < minOutAmount) revert ExceedsSlippage();
-        avail.approve(address(stAVAIL), outAmount);
+        if (!avail.approve(address(stAVAIL), outAmount)) revert ApprovalFailed();
         stAVAIL.mintTo(msg.sender, outAmount);
     }
 }

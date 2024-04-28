@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.25;
+pragma solidity 0.8.25;
 
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
@@ -52,7 +52,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
     }
 
     function previewFulfill(uint256 till) public view returns (uint256) {
-        uint256 amount = 0;
+        uint256 amount = 0; // @audit-info: No need to initialize amount to 0
         uint256 i = lastFulfillment + 1;
         for (i; i <= till;) {
             amount += withdrawalAmounts[i];
@@ -80,12 +80,13 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
             // increment lastFulfillment to id
             _fulfill(id);
         }
-        _burn(id);
         uint256 amount = withdrawalAmounts[id];
         withdrawalAmount -= amount;
         withdrawalAmounts[id] = 0;
+        address owner = ownerOf(id);
+        _burn(id);
         stAVAIL.updateAssetsFromWithdrawals(amount);
-        avail.safeTransfer(ownerOf(id), amount);
+        avail.safeTransfer(owner, amount);
     }
 
     function _fulfill(uint256 till) private {
