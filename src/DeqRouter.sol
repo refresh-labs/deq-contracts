@@ -15,7 +15,9 @@ contract DeqRouter is IDeqRouter {
     IStakedAvail public immutable stAVAIL;
 
     constructor(address _swapRouter, IERC20 _avail, IStakedAvail _stAVAIL) {
-        if (_swapRouter == address(0) || address(_avail) == address(0) || address(_stAVAIL) == address(0)) revert ZeroAddress();
+        if (_swapRouter == address(0) || address(_avail) == address(0) || address(_stAVAIL) == address(0)) {
+            revert ZeroAddress();
+        }
         swapRouter = _swapRouter;
         avail = _avail;
         stAVAIL = _stAVAIL;
@@ -31,7 +33,7 @@ contract DeqRouter is IDeqRouter {
         if (!success) revert SwapFailed(string(result));
         uint256 outAmount = abi.decode(result, (uint256));
         if (outAmount < minOutAmount) revert ExceedsSlippage();
-        if(!avail.approve(address(stAVAIL), outAmount)) revert ApprovalFailed();
+        if (!avail.approve(address(stAVAIL), outAmount)) revert ApprovalFailed();
         stAVAIL.mintTo(msg.sender, outAmount);
     }
 
@@ -46,7 +48,7 @@ contract DeqRouter is IDeqRouter {
         (IERC20 tokenIn, IERC20 tokenOut, uint256 inAmount, uint256 minOutAmount,) =
             abi.decode(data[4:], (IERC20, IERC20, uint256, uint256, Transformation[]));
         if (address(tokenOut) != address(avail)) revert InvalidOutputToken();
-        IERC20Permit(address(tokenIn)).permit(msg.sender, address(this), inAmount, deadline, v, r, s); 
+        IERC20Permit(address(tokenIn)).permit(msg.sender, address(this), inAmount, deadline, v, r, s);
         tokenIn.safeTransferFrom(msg.sender, address(this), inAmount);
         tokenIn.forceApprove(allowanceTarget, inAmount);
         (bool success, bytes memory result) = swapRouter.call(data);
