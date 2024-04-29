@@ -46,7 +46,7 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         ) {
             revert ZeroAddress();
         }
-        depository = newUpdater;
+        depository = newDepository;
         withdrawalHelper = newWithdrawalHelper;
         __ERC20_init("Staked Avail", "stAVAIL");
         __ERC20Permit_init("Staked Avail");
