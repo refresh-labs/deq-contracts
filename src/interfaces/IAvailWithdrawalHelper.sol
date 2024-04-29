@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.25;
 
-import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 import {IStakedAvail} from "./IStakedAvail.sol";
 
 interface IAvailWithdrawalHelper is IERC721 {
     error InvalidInput();
+    error InvalidWithdrawalAmount();
     error NotFulfilled();
-    error OnlyStakedAvail();
     error OnlyFulfiller();
+    error OnlyStakedAvail();
+    error ZeroAddress();
 
     function stAVAIL() external view returns (IStakedAvail);
     function lastTokenId() external view returns (uint256);

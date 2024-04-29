@@ -11,11 +11,6 @@ import {
     ERC721Upgradeable
 } from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC721/ERC721Upgradeable.sol";
 import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol";
-import {
-    IAccessControl,
-    AccessControlDefaultAdminRulesUpgradeable
-} from
-    "lib/openzeppelin-contracts-upgradeable/contracts/access/extensions/AccessControlDefaultAdminRulesUpgradeable.sol";
 import {Ownable2StepUpgradeable} from
     "lib/openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 
@@ -31,18 +26,15 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
 
     mapping(uint256 => uint256) public withdrawalAmounts;
 
-    error ZeroAddress();
-    error InvalidWithdrawalAmount();
-
-    constructor(IERC20 _avail) {
-        if (address(_avail) == address(0)) revert ZeroAddress();
-        avail = _avail;
+    constructor(IERC20 newAvail) {
+        if (address(newAvail) == address(0)) revert ZeroAddress();
+        avail = newAvail;
     }
 
-    function initialize(address governance, IStakedAvail _stAVAIL, uint256 _minWithdrawal) external initializer {
-        if (governance == address(0) || address(_stAVAIL) == address(0)) revert ZeroAddress();
-        stAVAIL = _stAVAIL;
-        minWithdrawal = _minWithdrawal;
+    function initialize(address governance, IStakedAvail newStAVAIL, uint256 newMinWithdrawal) external initializer {
+        if (governance == address(0) || address(newStAVAIL) == address(0)) revert ZeroAddress();
+        stAVAIL = newStAVAIL;
+        minWithdrawal = newMinWithdrawal;
         __ERC721_init("Exited Staked Avail", "exStAVAIL");
         _transferOwnership(governance);
     }
@@ -54,7 +46,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
     function previewFulfill(uint256 till) public view returns (uint256) {
         uint256 amount = 0; // @audit-info: No need to initialize amount to 0
         uint256 i = lastFulfillment + 1;
-        for (i; i <= till;) {
+        for (; i <= till;) {
             amount += withdrawalAmounts[i];
             unchecked {
                 ++i;
@@ -71,6 +63,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
             tokenId = ++lastTokenId;
         }
         withdrawalAmounts[tokenId] = amount;
+        // slither-disable-next-line events-maths
         withdrawalAmount += amount;
         _mint(account, tokenId);
     }
@@ -82,7 +75,8 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
         }
         uint256 amount = withdrawalAmounts[id];
         withdrawalAmount -= amount;
-        withdrawalAmounts[id] = 0;
+        // get some gas back
+        delete withdrawalAmounts[id];
         address owner = ownerOf(id);
         _burn(id);
         stAVAIL.updateAssetsFromWithdrawals(amount);

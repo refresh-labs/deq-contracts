@@ -5,8 +5,6 @@ import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC20Permit} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import {Ownable2StepUpgradeable} from
-    "lib/openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 import {
     ERC20Upgradeable,
     ERC20PermitUpgradeable
@@ -38,19 +36,19 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
 
     function initialize(
         address governance,
-        address _updater,
-        address _depository,
-        IAvailWithdrawalHelper _withdrawalHelper
+        address newUpdater,
+        address newDepository,
+        IAvailWithdrawalHelper newWithdrawalHelper
     ) external initializer {
-        if (_updater == address(0) || _depository == address(0) || address(_withdrawalHelper) == address(0)) {
+        if (governance == address(0) || newUpdater == address(0) || newDepository == address(0) || address(newWithdrawalHelper) == address(0)) {
             revert ZeroAddress();
         }
-        depository = _depository;
-        withdrawalHelper = _withdrawalHelper;
+        depository = newUpdater;
+        withdrawalHelper = newWithdrawalHelper;
         __ERC20_init("Staked Avail", "stAVAIL");
         __ERC20Permit_init("Staked Avail");
         __AccessControlDefaultAdminRules_init(0, governance);
-        _grantRole(UPDATER_ROLE, _updater);
+        _grantRole(UPDATER_ROLE, newUpdater);
     }
 
     function updateAssets(int256 delta) external onlyRole(UPDATER_ROLE) {
@@ -74,24 +72,25 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         emit AssetsUpdated(_assets);
     }
 
-    function forceUpdateAssets(uint256 _assets) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        assets = _assets;
+    function forceUpdateAssets(uint256 newAssets) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newAssets == 0) revert InvalidUpdate();
+        assets = newAssets;
 
-        emit AssetsUpdated(_assets);
+        emit AssetsUpdated(newAssets);
     }
 
-    function updateDepository(address _depository) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_depository == address(0)) revert ZeroAddress();
-        depository = _depository;
+    function updateDepository(address newDepository) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newDepository == address(0)) revert ZeroAddress();
+        depository = newDepository;
 
-        emit DepositoryUpdated(_depository);
+        emit DepositoryUpdated(newDepository);
     }
 
-    function updateWithdrawalHelper(IAvailWithdrawalHelper _withdrawalHelper) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (address(_withdrawalHelper) == address(0)) revert ZeroAddress();
-        withdrawalHelper = _withdrawalHelper;
+    function updateWithdrawalHelper(IAvailWithdrawalHelper newWithdrawalHelper) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (address(newWithdrawalHelper) == address(0)) revert ZeroAddress();
+        withdrawalHelper = newWithdrawalHelper;
 
-        emit WithdrawalHelperUpdated(address(_withdrawalHelper));
+        emit WithdrawalHelperUpdated(address(newWithdrawalHelper));
     }
 
     function previewMint(uint256 amount) public view returns (uint256) {
@@ -105,6 +104,7 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
     function mintWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
         if (amount == 0) revert ZeroAmount();
         uint256 shares = previewMint(amount);
+        // slither-disable-next-line events-maths
         assets += amount;
         _mint(msg.sender, shares);
         IERC20Permit(address(avail)).permit(msg.sender, address(this), amount, deadline, v, r, s);
@@ -114,6 +114,7 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
     function mint(uint256 amount) external {
         if (amount == 0) revert ZeroAmount();
         uint256 shares = previewMint(amount);
+        // slither-disable-next-line events-maths
         assets += amount;
         _mint(msg.sender, shares);
         avail.safeTransferFrom(msg.sender, depository, amount);
@@ -122,6 +123,7 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
     function mintTo(address to, uint256 amount) external {
         if (amount == 0) revert ZeroAmount();
         uint256 shares = previewMint(amount);
+        // slither-disable-next-line events-maths
         assets += amount;
         _mint(to, shares);
         avail.safeTransferFrom(msg.sender, depository, amount);

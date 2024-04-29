@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.25;
 
-import {Ownable2StepUpgradeable} from
-    "lib/openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
 import {IAvailBridge} from "src/interfaces/IAvailBridge.sol";
-import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IAvailDepository} from "src/interfaces/IAvailDepository.sol";
@@ -18,35 +15,34 @@ contract AvailDepository is AccessControlDefaultAdminRulesUpgradeable, IAvailDep
 
     IERC20 public immutable avail;
     IAvailBridge public bridge;
-    address public depositor;
     bytes32 public depository;
 
-    constructor(IERC20 _avail) {
-        if (address(_avail) == address(0)) revert ZeroAddress();
-        avail = _avail;
+    constructor(IERC20 newAvail) {
+        if (address(newAvail) == address(0)) revert ZeroAddress();
+        avail = newAvail;
     }
 
-    function initialize(address governance, IAvailBridge _bridge, address _depositor, bytes32 _depository)
+    function initialize(address governance, IAvailBridge newBridge, address newDepositor, bytes32 newDepository)
         external
         initializer
     {
-        if (address(_bridge) == address(0) || _depositor == address(0) || _depository == bytes32(0)) {
+        if (address(newBridge) == address(0) || newDepositor == address(0) || newDepository == bytes32(0)) {
             revert ZeroAddress();
         }
-        bridge = _bridge;
-        depository = _depository;
+        bridge = newBridge;
+        depository = newDepository;
         __AccessControlDefaultAdminRules_init(0, governance);
-        _grantRole(DEPOSITOR_ROLE, _depositor);
+        _grantRole(DEPOSITOR_ROLE, newDepositor);
     }
 
-    function updateBridge(IAvailBridge _bridge) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (address(_bridge) == address(0)) revert ZeroAddress();
-        bridge = _bridge;
+    function updateBridge(IAvailBridge newBridge) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (address(newBridge) == address(0)) revert ZeroAddress();
+        bridge = newBridge;
     }
 
-    function updateDepository(bytes32 _depository) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_depository == bytes32(0)) revert ZeroAddress();
-        depository = _depository;
+    function updateDepository(bytes32 newDepository) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (newDepository == bytes32(0)) revert ZeroAddress();
+        depository = newDepository;
     }
 
     function deposit() external onlyRole(DEPOSITOR_ROLE) {

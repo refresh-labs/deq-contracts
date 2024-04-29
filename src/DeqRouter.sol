@@ -14,13 +14,13 @@ contract DeqRouter is IDeqRouter {
     IERC20 public immutable avail;
     IStakedAvail public immutable stAVAIL;
 
-    constructor(address _swapRouter, IERC20 _avail, IStakedAvail _stAVAIL) {
-        if (_swapRouter == address(0) || address(_avail) == address(0) || address(_stAVAIL) == address(0)) {
+    constructor(address newSwapRouter, IERC20 newAvail, IStakedAvail newStAVAIL) {
+        if (newSwapRouter == address(0) || address(newAvail) == address(0) || address(newStAVAIL) == address(0)) {
             revert ZeroAddress();
         }
-        swapRouter = _swapRouter;
-        avail = _avail;
-        stAVAIL = _stAVAIL;
+        swapRouter = newSwapRouter;
+        avail = newAvail;
+        stAVAIL = newStAVAIL;
     }
 
     function swapERC20ToStAvail(address allowanceTarget, bytes calldata data) external {
@@ -29,6 +29,7 @@ contract DeqRouter is IDeqRouter {
         if (address(tokenOut) != address(avail)) revert InvalidOutputToken();
         tokenIn.safeTransferFrom(msg.sender, address(this), inAmount);
         tokenIn.forceApprove(allowanceTarget, inAmount);
+        // slither-disable-next-line low-level-calls
         (bool success, bytes memory result) = swapRouter.call(data);
         if (!success) revert SwapFailed(string(result));
         uint256 outAmount = abi.decode(result, (uint256));
@@ -51,6 +52,7 @@ contract DeqRouter is IDeqRouter {
         IERC20Permit(address(tokenIn)).permit(msg.sender, address(this), inAmount, deadline, v, r, s);
         tokenIn.safeTransferFrom(msg.sender, address(this), inAmount);
         tokenIn.forceApprove(allowanceTarget, inAmount);
+        // slither-disable-next-line low-level-calls
         (bool success, bytes memory result) = swapRouter.call(data);
         if (!success) revert SwapFailed(string(result));
         uint256 outAmount = abi.decode(result, (uint256));
@@ -65,6 +67,7 @@ contract DeqRouter is IDeqRouter {
         if (address(tokenIn) != 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) revert InvalidInputToken();
         if (address(tokenOut) != address(avail)) revert InvalidOutputToken();
         if (msg.value != inAmount) revert InvalidInputAmount();
+        // slither-disable-next-line low-level-calls
         (bool success, bytes memory result) = swapRouter.call{value: msg.value}(data);
         if (!success) revert SwapFailed(string(result));
         uint256 outAmount = abi.decode(result, (uint256));
