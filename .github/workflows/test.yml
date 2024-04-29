@@ -1,16 +1,20 @@
-name: test
+name: Solidity CI
 
-on: workflow_dispatch
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 env:
   FOUNDRY_PROFILE: ci
 
 jobs:
-  check:
+  test:
     strategy:
       fail-fast: true
 
-    name: Foundry project
+    name: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,11 +28,82 @@ jobs:
 
       - name: Run Forge build
         run: |
-          forge --version
           forge build --sizes
         id: build
 
       - name: Run Forge tests
         run: |
           FOUNDRY_PROFILE=intense forge test -vvv
+        id: test
+
+  slither:
+    strategy:
+      fail-fast: true
+
+    name: slither
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - uses: crytic/slither-action@v0.3.2
+        with:
+          slither-config: ./slither.config.json
+
+  coverage:
+    strategy:
+      fail-fast: true
+
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Run Forge build
+        run: |
+          forge build --sizes
+        id: build
+
+      - name: Run Forge coverage
+        run: |
+          forge coverage
+        id: coverage
+
+  gas-report:
+    strategy:
+      fail-fast: true
+
+    name: gas-report
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Run Forge build
+        run: |
+          forge build --sizes
+        id: build
+
+      - name: Run Forge tests
+        run: |
+          FOUNDRY_FUZZ_RUNS=1 forge test --gas-report
         id: test
