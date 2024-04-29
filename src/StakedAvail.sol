@@ -40,7 +40,10 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         address newDepository,
         IAvailWithdrawalHelper newWithdrawalHelper
     ) external initializer {
-        if (governance == address(0) || newUpdater == address(0) || newDepository == address(0) || address(newWithdrawalHelper) == address(0)) {
+        if (
+            governance == address(0) || newUpdater == address(0) || newDepository == address(0)
+                || address(newWithdrawalHelper) == address(0)
+        ) {
             revert ZeroAddress();
         }
         depository = newUpdater;
