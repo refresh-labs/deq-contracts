@@ -18,7 +18,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
     using SafeERC20 for IERC20;
 
     IERC20 public immutable avail;
-    IStakedAvail public stAVAIL;
+    IStakedAvail public stAvail;
     uint256 public lastTokenId;
     uint256 public withdrawalAmount;
     uint256 public lastFulfillment;
@@ -31,11 +31,11 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
         avail = newAvail;
     }
 
-    function initialize(address governance, IStakedAvail newStAVAIL, uint256 newMinWithdrawal) external initializer {
-        if (governance == address(0) || address(newStAVAIL) == address(0)) revert ZeroAddress();
-        stAVAIL = newStAVAIL;
+    function initialize(address governance, IStakedAvail newStAvail, uint256 newMinWithdrawal) external initializer {
+        if (governance == address(0) || address(newStAvail) == address(0)) revert ZeroAddress();
+        stAvail = newStAvail;
         minWithdrawal = newMinWithdrawal;
-        __ERC721_init("Exited Staked Avail", "exStAVAIL");
+        __ERC721_init("Exited Staked Avail", "exStAvail");
         _transferOwnership(governance);
     }
 
@@ -56,7 +56,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
     }
 
     function mint(address account, uint256 amount) external {
-        if (msg.sender != address(stAVAIL)) revert OnlyStakedAvail();
+        if (msg.sender != address(stAvail)) revert OnlyStakedAvail();
         if (amount < minWithdrawal) revert InvalidWithdrawalAmount();
         uint256 tokenId;
         unchecked {
@@ -79,7 +79,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
         delete withdrawalAmounts[id];
         address owner = ownerOf(id);
         _burn(id);
-        stAVAIL.updateAssetsFromWithdrawals(amount);
+        stAvail.updateAssetsFromWithdrawals(amount);
         avail.safeTransfer(owner, amount);
     }
 

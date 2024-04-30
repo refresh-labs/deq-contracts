@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.25;
+pragma solidity 0.8.25;
 
 import {Test} from "lib/forge-std/src/Test.sol";
-import {ProxyAdmin} from "lib/openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
 import {TransparentUpgradeableProxy} from
     "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IERC20, StakedAvail} from "src/StakedAvail.sol";
@@ -24,7 +23,7 @@ contract StakedAvailTest is Test {
     function setUp() external {
         owner = msg.sender;
         avail = new MockERC20("Avail", "AVAIL");
-        bridge = IAvailBridge(address(new MockAvailBridge()));
+        bridge = IAvailBridge(address(new MockAvailBridge(avail)));
         address impl = address(new StakedAvail(avail));
         stakedAvail = StakedAvail(address(new TransparentUpgradeableProxy(impl, msg.sender, "")));
         address depositoryImpl = address(new AvailDepository(avail));
@@ -95,7 +94,7 @@ contract StakedAvailTest is Test {
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
         assertEq(avail.balanceOf(address(depository)), amount1);
         vm.startPrank(owner);
-        // inflate value of stAVAIL
+        // inflate value of stAvail
         stakedAvail.updateAssets(int256(random));
         vm.startPrank(from);
         stakedAvail.mint(amount2);
@@ -123,7 +122,7 @@ contract StakedAvailTest is Test {
         assertEq(avail.balanceOf(address(depository)), amount1);
         vm.startPrank(owner);
         uint256 reduction = amount1 / 2;
-        // deflate value of stAVAIL
+        // deflate value of stAvail
         stakedAvail.updateAssets(-int256(amount1 / 2));
         vm.startPrank(from);
         stakedAvail.mint(amount2);

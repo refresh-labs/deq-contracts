@@ -12,7 +12,7 @@ interface IAvailWithdrawalHelper is IERC721 {
     error OnlyStakedAvail();
     error ZeroAddress();
 
-    function stAVAIL() external view returns (IStakedAvail);
+    function stAvail() external view returns (IStakedAvail);
     function lastTokenId() external view returns (uint256);
     function withdrawalAmount() external view returns (uint256);
     function lastFulfillment() external view returns (uint256);

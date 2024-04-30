@@ -47,7 +47,8 @@ contract AvailDepository is AccessControlDefaultAdminRulesUpgradeable, IAvailDep
 
     function deposit() external onlyRole(DEPOSITOR_ROLE) {
         uint256 amount = avail.balanceOf(address(this));
-        if (!avail.approve(address(bridge), amount)) revert ApprovalFailed();
-        bridge.sendAVAIL(depository, amount);
+        // keep 1 wei so slot stays warm
+        avail.approve(address(bridge), amount - 1);
+        bridge.sendAVAIL(depository, amount - 1);
     }
 }

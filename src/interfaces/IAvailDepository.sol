@@ -4,7 +4,6 @@ pragma solidity 0.8.25;
 import {IAvailBridge} from "./IAvailBridge.sol";
 
 interface IAvailDepository {
-    error ApprovalFailed();
     error OnlyDepositor();
     error ZeroAddress();
 

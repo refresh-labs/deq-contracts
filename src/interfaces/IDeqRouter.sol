@@ -7,7 +7,6 @@ interface IDeqRouter {
         bytes _bytes;
     }
 
-    error ApprovalFailed();
     error ExceedsSlippage();
     error InvalidInputAmount();
     error InvalidInputToken();

@@ -17,3 +17,5 @@ cache/
 out/
 .env
 broadcast/
+lcov.info
+coverage/

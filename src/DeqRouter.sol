@@ -12,15 +12,15 @@ contract DeqRouter is IDeqRouter {
 
     address public immutable swapRouter;
     IERC20 public immutable avail;
-    IStakedAvail public immutable stAVAIL;
+    IStakedAvail public immutable stAvail;
 
-    constructor(address newSwapRouter, IERC20 newAvail, IStakedAvail newStAVAIL) {
-        if (newSwapRouter == address(0) || address(newAvail) == address(0) || address(newStAVAIL) == address(0)) {
+    constructor(address newSwapRouter, IERC20 newAvail, IStakedAvail newStAvail) {
+        if (newSwapRouter == address(0) || address(newAvail) == address(0) || address(newStAvail) == address(0)) {
             revert ZeroAddress();
         }
         swapRouter = newSwapRouter;
         avail = newAvail;
-        stAVAIL = newStAVAIL;
+        stAvail = newStAvail;
     }
 
     function swapERC20ToStAvail(address allowanceTarget, bytes calldata data) external {
@@ -34,8 +34,8 @@ contract DeqRouter is IDeqRouter {
         if (!success) revert SwapFailed(string(result));
         uint256 outAmount = abi.decode(result, (uint256));
         if (outAmount < minOutAmount) revert ExceedsSlippage();
-        if (!avail.approve(address(stAVAIL), outAmount)) revert ApprovalFailed();
-        stAVAIL.mintTo(msg.sender, outAmount);
+        avail.approve(address(stAvail), outAmount);
+        stAvail.mintTo(msg.sender, outAmount);
     }
 
     function swapERC20ToStAvailWithPermit(
@@ -57,8 +57,8 @@ contract DeqRouter is IDeqRouter {
         if (!success) revert SwapFailed(string(result));
         uint256 outAmount = abi.decode(result, (uint256));
         if (outAmount < minOutAmount) revert ExceedsSlippage();
-        if (!avail.approve(address(stAVAIL), outAmount)) revert ApprovalFailed();
-        stAVAIL.mintTo(msg.sender, outAmount);
+        avail.approve(address(stAvail), outAmount);
+        stAvail.mintTo(msg.sender, outAmount);
     }
 
     function swapETHtoStAvail(bytes calldata data) external payable {
@@ -72,7 +72,7 @@ contract DeqRouter is IDeqRouter {
         if (!success) revert SwapFailed(string(result));
         uint256 outAmount = abi.decode(result, (uint256));
         if (outAmount < minOutAmount) revert ExceedsSlippage();
-        if (!avail.approve(address(stAVAIL), outAmount)) revert ApprovalFailed();
-        stAVAIL.mintTo(msg.sender, outAmount);
+        avail.approve(address(stAvail), outAmount);
+        stAvail.mintTo(msg.sender, outAmount);
     }
 }

@@ -29,9 +29,9 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
     /// @notice Amount of assets staked (in wei)
     uint256 public assets;
 
-    constructor(IERC20 _avail) {
-        if (address(_avail) == address(0)) revert ZeroAddress();
-        avail = _avail;
+    constructor(IERC20 newAvail) {
+        if (address(newAvail) == address(0)) revert ZeroAddress();
+        avail = newAvail;
     }
 
     function initialize(

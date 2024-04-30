@@ -1,0 +1,117 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+pragma solidity 0.8.25;
+
+import {Test} from "lib/forge-std/src/Test.sol";
+import {ProxyAdmin} from "lib/openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
+import {TransparentUpgradeableProxy} from
+    "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {IERC20, StakedAvail} from "src/StakedAvail.sol";
+import {MockERC20} from "src/mocks/MockERC20.sol";
+import {IAccessControl, IAccessControlDefaultAdminRules} from "lib/openzeppelin-contracts/contracts/access/extensions/AccessControlDefaultAdminRules.sol";
+import {IAvailDepository, AvailDepository} from "src/AvailDepository.sol";
+import {MockAvailBridge} from "src/mocks/MockAvailBridge.sol";
+import {IAvailBridge} from "src/interfaces/IAvailBridge.sol";
+import {AvailWithdrawalHelper} from "src/AvailWithdrawalHelper.sol";
+import {console} from "lib/forge-std/src/console.sol";
+
+contract StakedAvailTest is Test {
+    StakedAvail public stakedAvail;
+    MockERC20 public avail;
+    AvailDepository public depository;
+    IAvailBridge public bridge;
+    AvailWithdrawalHelper public withdrawalHelper;
+    address owner;
+    address depositor;
+    bytes32 availDepositoryAddr;
+
+    bytes32 constant DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE");
+
+    function setUp() external {
+        owner = msg.sender;
+        avail = new MockERC20("Avail", "AVAIL");
+        depositor = makeAddr("depositor");
+        availDepositoryAddr = bytes32(bytes20(makeAddr("availDepository")));
+        bridge = IAvailBridge(address(new MockAvailBridge(avail)));
+        address impl = address(new StakedAvail(avail));
+        stakedAvail = StakedAvail(address(new TransparentUpgradeableProxy(impl, msg.sender, "")));
+        address depositoryImpl = address(new AvailDepository(avail));
+        depository = AvailDepository(address(new TransparentUpgradeableProxy(depositoryImpl, msg.sender, "")));
+        address withdrawalHelperImpl = address(new AvailWithdrawalHelper(avail));
+        withdrawalHelper =
+            AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, msg.sender, "")));
+        withdrawalHelper.initialize(msg.sender, stakedAvail, 1 ether);
+        depository.initialize(msg.sender, bridge, depositor, availDepositoryAddr);
+        stakedAvail.initialize(msg.sender, msg.sender, address(depository), withdrawalHelper);
+    }
+
+    function test_initialize() external view {
+        assertEq(address(depository.avail()), address(avail));
+        assertEq(address(depository.bridge()), address(bridge));
+        assertEq(depository.depository(), availDepositoryAddr);
+        assertTrue(depository.hasRole(DEPOSITOR_ROLE, depositor));
+        assertEq(depository.owner(), owner);
+    }
+
+    function test_updateBridge(IAvailBridge newBridge) external {
+        vm.assume(address(newBridge) != address(0));
+        vm.prank(owner);
+        depository.updateBridge(newBridge);
+        assertEq(address(depository.bridge()), address(newBridge));
+    }
+
+    function test_updateDepository(bytes32 newDepositoryAddr) external {
+        vm.assume(newDepositoryAddr != bytes32(0));
+        vm.prank(owner);
+        vm.assume(newDepositoryAddr != availDepositoryAddr);
+        depository.updateDepository(newDepositoryAddr);
+        assertEq(depository.depository(), newDepositoryAddr);
+    }
+
+    function testRevertZeroAddress_updateBridge() external {
+        vm.prank(owner);
+        vm.expectRevert(IAvailDepository.ZeroAddress.selector);
+        depository.updateBridge(IAvailBridge(address(0)));
+    }
+
+    function testRevertZeroAddress_updateDepository() external {
+        vm.prank(owner);
+        vm.expectRevert(IAvailDepository.ZeroAddress.selector);
+        depository.updateDepository(bytes32(0));
+    }
+
+    function testRevertOnlyRole_updateBridge(IAvailBridge newBridge) external {
+        vm.assume(address(newBridge) != address(0));
+        address from = makeAddr("from");
+        vm.assume(from != owner);
+        vm.prank(from);
+        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from,  bytes32(0)));
+        depository.updateBridge(newBridge);
+    }
+
+    function testRevertOnlyRole_updateDepository(bytes32 newDepository) external {
+        vm.assume(newDepository != bytes32(0));
+        address from = makeAddr("from");
+        vm.assume(from != owner);
+        vm.prank(from);
+        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from,  bytes32(0)));
+        depository.updateDepository(newDepository);
+    }
+
+    function testRevertOnlyDepositor_deposit() external {
+        address from = makeAddr("from");
+        vm.assume(from != depositor);
+        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, DEPOSITOR_ROLE));
+        vm.prank(from);
+        depository.deposit();
+    }
+
+    function test_Deposit(uint256 amount) external {
+        vm.assume(amount > 1);
+        avail.mint(address(depository), amount);
+        vm.prank(depositor);
+        depository.deposit();
+        assertEq(avail.balanceOf(address(depository)), 1);
+        // bridge burns the deposited amount
+        assertEq(avail.balanceOf(address(stakedAvail)), 0);
+    }
+}
