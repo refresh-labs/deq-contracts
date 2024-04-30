@@ -26,7 +26,10 @@ contract AvailDepository is AccessControlDefaultAdminRulesUpgradeable, IAvailDep
         external
         initializer
     {
-        if (governance == address(0) || address(newBridge) == address(0) || newDepositor == address(0) || newDepository == bytes32(0)) {
+        if (
+            governance == address(0) || address(newBridge) == address(0) || newDepositor == address(0)
+                || newDepository == bytes32(0)
+        ) {
             revert ZeroAddress();
         }
         bridge = newBridge;

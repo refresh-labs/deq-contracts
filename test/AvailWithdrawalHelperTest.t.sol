@@ -47,13 +47,15 @@ contract AvailWithdrawalHelperTest is Test {
         assertEq(address(newWithdrawalHelper.avail()), rand);
     }
 
-    function testRevert_initialize(address rand, address newGovernance, address newStakedAvail, uint256 amount) external {
+    function testRevert_initialize(address rand, address newGovernance, address newStakedAvail, uint256 amount)
+        external
+    {
         vm.assume(rand != address(0));
         AvailWithdrawalHelper newWithdrawalHelper = new AvailWithdrawalHelper(IERC20(rand));
         assertEq(address(newWithdrawalHelper.avail()), rand);
         vm.assume(newGovernance == address(0) || newStakedAvail == address(0));
         vm.expectRevert(IAvailWithdrawalHelper.ZeroAddress.selector);
-        newWithdrawalHelper.initialize(newGovernance,IStakedAvail(newStakedAvail), amount);
+        newWithdrawalHelper.initialize(newGovernance, IStakedAvail(newStakedAvail), amount);
     }
 
     function test_initialize() external view {

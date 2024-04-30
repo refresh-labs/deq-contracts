@@ -50,7 +50,7 @@ contract AvailDepositoryTest is Test {
     function testRevert_constructor() external {
         vm.expectRevert(IAvailDepository.ZeroAddress.selector);
         new AvailDepository(IERC20(address(0)));
-    }   
+    }
 
     function test_constructor(address rand) external {
         vm.assume(rand != address(0));
@@ -58,8 +58,20 @@ contract AvailDepositoryTest is Test {
         assertEq(address(newDepository.avail()), rand);
     }
 
-    function testRevert_Initialize(address rand, address newGovernance, address newBridge, address newDepositor, bytes32 newAvailDepositoryAddr) external {
-        vm.assume(rand != address(0) && (newGovernance == address(0) || newBridge == address(0) || newDepositor == address(0) || newAvailDepositoryAddr == bytes32(0)));
+    function testRevert_Initialize(
+        address rand,
+        address newGovernance,
+        address newBridge,
+        address newDepositor,
+        bytes32 newAvailDepositoryAddr
+    ) external {
+        vm.assume(
+            rand != address(0)
+                && (
+                    newGovernance == address(0) || newBridge == address(0) || newDepositor == address(0)
+                        || newAvailDepositoryAddr == bytes32(0)
+                )
+        );
         AvailDepository newDepository = new AvailDepository(IERC20(rand));
         assertEq(address(newDepository.avail()), rand);
         vm.expectRevert(IAvailDepository.ZeroAddress.selector);

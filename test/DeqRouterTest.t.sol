@@ -63,25 +63,22 @@ contract DeqRouterTest is Test {
         vm.startPrank(from);
         tokenIn.approve(address(deqRouter), amountIn);
         bytes memory data = abi.encodeWithSelector(
-            rand,
-            tokenIn,
-            address(avail),
-            amountIn,
-            minAmountOut,
-            new IDeqRouter.Transformation[](0)
+            rand, tokenIn, address(avail), amountIn, minAmountOut, new IDeqRouter.Transformation[](0)
         );
         avail.mint(address(deqRouter), amountOut);
-        vm.mockCall(
-            swapRouter,
-            data,
-            abi.encode(amountOut)
-        );
+        vm.mockCall(swapRouter, data, abi.encode(amountOut));
         deqRouter.swapERC20ToStAvail(makeAddr("rand"), data);
         assertEq(stakedAvail.balanceOf(from), amountOut);
         assertEq(avail.balanceOf(address(deqRouter)), 0);
     }
 
-    function test_swapERC20ToStAvailWithPermit(bytes4 rand, uint256 amountIn, uint256 amountOut, uint256 minAmountOut, uint256 deadline) external {
+    function test_swapERC20ToStAvailWithPermit(
+        bytes4 rand,
+        uint256 amountIn,
+        uint256 amountOut,
+        uint256 minAmountOut,
+        uint256 deadline
+    ) external {
         vm.assume(amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut <= amountOut && deadline != 0);
         MockERC20 tokenIn = new MockERC20("TokenIn", "TKNIN");
         (address from, uint256 key) = makeAddrAndKey("from");
@@ -100,26 +97,17 @@ contract DeqRouterTest is Test {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(key, digest);
         bytes memory data = abi.encodeWithSelector(
-            rand,
-            tokenIn,
-            address(avail),
-            amountIn,
-            minAmountOut,
-            new IDeqRouter.Transformation[](0)
+            rand, tokenIn, address(avail), amountIn, minAmountOut, new IDeqRouter.Transformation[](0)
         );
         avail.mint(address(deqRouter), amountOut);
-        vm.mockCall(
-            swapRouter,
-            data,
-            abi.encode(amountOut)
-        );
+        vm.mockCall(swapRouter, data, abi.encode(amountOut));
         deqRouter.swapERC20ToStAvailWithPermit(makeAddr("rand"), data, deadline, v, r, s);
         assertEq(stakedAvail.balanceOf(from), amountOut);
         assertEq(avail.balanceOf(address(deqRouter)), 0);
     }
 
     function test_swapETHToStAvail(bytes4 rand, uint256 amountIn, uint256 amountOut, uint256 minAmountOut) external {
-        vm.assume(amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut <= amountOut);  
+        vm.assume(amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut <= amountOut);
         address from = makeAddr("from");
         vm.deal(from, amountIn);
         vm.startPrank(from);
@@ -132,12 +120,7 @@ contract DeqRouterTest is Test {
             new IDeqRouter.Transformation[](0)
         );
         avail.mint(address(deqRouter), amountOut);
-        vm.mockCall(
-            swapRouter,
-            amountIn,
-            data,
-            abi.encode(amountOut)
-        );
+        vm.mockCall(swapRouter, amountIn, data, abi.encode(amountOut));
         deqRouter.swapETHtoStAvail{value: amountIn}(data);
         assertEq(stakedAvail.balanceOf(from), amountOut);
         assertEq(avail.balanceOf(address(deqRouter)), 0);
