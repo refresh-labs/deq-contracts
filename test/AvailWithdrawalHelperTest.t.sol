@@ -4,7 +4,7 @@ pragma solidity 0.8.25;
 import {Test} from "lib/forge-std/src/Test.sol";
 import {TransparentUpgradeableProxy} from
     "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {IERC20, StakedAvail} from "src/StakedAvail.sol";
+import {IERC20, IStakedAvail, StakedAvail} from "src/StakedAvail.sol";
 import {MockERC20} from "src/mocks/MockERC20.sol";
 import {AvailDepository} from "src/AvailDepository.sol";
 import {MockAvailBridge} from "src/mocks/MockAvailBridge.sol";
@@ -34,6 +34,26 @@ contract AvailWithdrawalHelperTest is Test {
         withdrawalHelper.initialize(msg.sender, stakedAvail, 1 ether);
         depository.initialize(msg.sender, bridge, msg.sender, bytes32(abi.encode(1)));
         stakedAvail.initialize(msg.sender, msg.sender, address(depository), withdrawalHelper);
+    }
+
+    function testRevert_constructor() external {
+        vm.expectRevert(IAvailWithdrawalHelper.ZeroAddress.selector);
+        new AvailWithdrawalHelper(IERC20(address(0)));
+    }
+
+    function test_constructor(address rand) external {
+        vm.assume(rand != address(0));
+        AvailWithdrawalHelper newWithdrawalHelper = new AvailWithdrawalHelper(IERC20(rand));
+        assertEq(address(newWithdrawalHelper.avail()), rand);
+    }
+
+    function testRevert_initialize(address rand, address newGovernance, address newStakedAvail, uint256 amount) external {
+        vm.assume(rand != address(0));
+        AvailWithdrawalHelper newWithdrawalHelper = new AvailWithdrawalHelper(IERC20(rand));
+        assertEq(address(newWithdrawalHelper.avail()), rand);
+        vm.assume(newGovernance == address(0) || newStakedAvail == address(0));
+        vm.expectRevert(IAvailWithdrawalHelper.ZeroAddress.selector);
+        newWithdrawalHelper.initialize(newGovernance,IStakedAvail(newStakedAvail), amount);
     }
 
     function test_initialize() external view {
