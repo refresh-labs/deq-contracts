@@ -55,22 +55,34 @@ contract DeqRouterTest is Test {
         new DeqRouter(address(0), IERC20(address(0)), IStakedAvail(address(0)));
     }
 
-    function testRevertInvalidOutputToken_swapERC20ToStAvail(bytes4 rand, address tokenOut, uint256 amountIn, uint256 amountOut, uint256 minAmountOut) external {
-        vm.assume(amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut <= amountOut && tokenOut != address(avail));
+    function testRevertInvalidOutputToken_swapERC20ToStAvail(
+        bytes4 rand,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOut,
+        uint256 minAmountOut
+    ) external {
+        vm.assume(
+            amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut <= amountOut && tokenOut != address(avail)
+        );
         MockERC20 tokenIn = new MockERC20("TokenIn", "TKNIN");
         address from = makeAddr("from");
         tokenIn.mint(from, amountIn);
         vm.startPrank(from);
         tokenIn.approve(address(deqRouter), amountIn);
-        bytes memory data = abi.encodeWithSelector(
-            rand, tokenIn, tokenOut, amountIn, minAmountOut, new IDeqRouter.Transformation[](0)
-        );
+        bytes memory data =
+            abi.encodeWithSelector(rand, tokenIn, tokenOut, amountIn, minAmountOut, new IDeqRouter.Transformation[](0));
         avail.mint(address(deqRouter), amountOut);
         vm.expectRevert(IDeqRouter.InvalidOutputToken.selector);
         deqRouter.swapERC20ToStAvail(makeAddr("rand"), data);
     }
 
-    function testRevertSwapFailed_swapERC20ToStAvail(bytes4 rand, uint256 amountIn, uint256 amountOut, uint256 minAmountOut) external {
+    function testRevertSwapFailed_swapERC20ToStAvail(
+        bytes4 rand,
+        uint256 amountIn,
+        uint256 amountOut,
+        uint256 minAmountOut
+    ) external {
         vm.assume(amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut <= amountOut);
         MockERC20 tokenIn = new MockERC20("TokenIn", "TKNIN");
         address from = makeAddr("from");
@@ -86,7 +98,12 @@ contract DeqRouterTest is Test {
         deqRouter.swapERC20ToStAvail(makeAddr("rand"), data);
     }
 
-    function testRevertInvalidSlippage_swapERC20ToStAvail(bytes4 rand, uint256 amountIn, uint256 amountOut, uint256 minAmountOut) external {
+    function testRevertInvalidSlippage_swapERC20ToStAvail(
+        bytes4 rand,
+        uint256 amountIn,
+        uint256 amountOut,
+        uint256 minAmountOut
+    ) external {
         vm.assume(amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut > amountOut);
         MockERC20 tokenIn = new MockERC20("TokenIn", "TKNIN");
         address from = makeAddr("from");
@@ -127,7 +144,9 @@ contract DeqRouterTest is Test {
         uint256 minAmountOut,
         uint256 deadline
     ) external {
-        vm.assume(amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut <= amountOut && tokenOut != address(avail));
+        vm.assume(
+            amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut <= amountOut && tokenOut != address(avail)
+        );
         MockERC20 tokenIn = new MockERC20("TokenIn", "TKNIN");
         (address from, uint256 key) = makeAddrAndKey("from");
         tokenIn.mint(from, amountIn);
@@ -144,9 +163,8 @@ contract DeqRouterTest is Test {
         bytes32 digest = sigUtils.getTypedDataHash(permit);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(key, digest);
-        bytes memory data = abi.encodeWithSelector(
-            rand, tokenIn, tokenOut, amountIn, minAmountOut, new IDeqRouter.Transformation[](0)
-        );
+        bytes memory data =
+            abi.encodeWithSelector(rand, tokenIn, tokenOut, amountIn, minAmountOut, new IDeqRouter.Transformation[](0));
         avail.mint(address(deqRouter), amountOut);
         vm.expectRevert(IDeqRouter.InvalidOutputToken.selector);
         deqRouter.swapERC20ToStAvailWithPermit(makeAddr("rand"), data, deadline, v, r, s);
@@ -252,26 +270,38 @@ contract DeqRouterTest is Test {
         assertEq(avail.balanceOf(address(deqRouter)), 0);
     }
 
-    function testRevertInvalidInputToken_swapETHToStAvail(bytes4 rand, address tokenIn, uint256 amountIn, uint256 amountOut, uint256 minAmountOut) external {
-        vm.assume(amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut <= amountOut && tokenIn != 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
+    function testRevertInvalidInputToken_swapETHToStAvail(
+        bytes4 rand,
+        address tokenIn,
+        uint256 amountIn,
+        uint256 amountOut,
+        uint256 minAmountOut
+    ) external {
+        vm.assume(
+            amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut <= amountOut
+                && tokenIn != 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE
+        );
         address from = makeAddr("from");
         vm.deal(from, amountIn);
         vm.startPrank(from);
         bytes memory data = abi.encodeWithSelector(
-            rand,
-            tokenIn,
-            address(avail),
-            amountIn,
-            minAmountOut,
-            new IDeqRouter.Transformation[](0)
+            rand, tokenIn, address(avail), amountIn, minAmountOut, new IDeqRouter.Transformation[](0)
         );
         avail.mint(address(deqRouter), amountOut);
         vm.expectRevert(IDeqRouter.InvalidInputToken.selector);
         deqRouter.swapETHtoStAvail{value: amountIn}(data);
     }
 
-    function testRevertInvalidInputAmount_swapETHToStAvail(bytes4 rand, uint256 amountIn, uint256 amountOut, uint256 minAmountOut, uint256 wrongAmount) external {
-        vm.assume(amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut <= amountOut && wrongAmount != amountIn);
+    function testRevertInvalidInputAmount_swapETHToStAvail(
+        bytes4 rand,
+        uint256 amountIn,
+        uint256 amountOut,
+        uint256 minAmountOut,
+        uint256 wrongAmount
+    ) external {
+        vm.assume(
+            amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut <= amountOut && wrongAmount != amountIn
+        );
         address from = makeAddr("from");
         vm.deal(from, wrongAmount);
         vm.startPrank(from);
@@ -288,8 +318,16 @@ contract DeqRouterTest is Test {
         deqRouter.swapETHtoStAvail{value: wrongAmount}(data);
     }
 
-    function testRevertInvalidOutputToken_swapETHToStAvail(bytes4 rand, address tokenOut, uint256 amountIn, uint256 amountOut, uint256 minAmountOut) external {
-        vm.assume(amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut <= amountOut && tokenOut != address(avail));
+    function testRevertInvalidOutputToken_swapETHToStAvail(
+        bytes4 rand,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOut,
+        uint256 minAmountOut
+    ) external {
+        vm.assume(
+            amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut <= amountOut && tokenOut != address(avail)
+        );
         address from = makeAddr("from");
         vm.deal(from, amountIn);
         vm.startPrank(from);
@@ -306,7 +344,12 @@ contract DeqRouterTest is Test {
         deqRouter.swapETHtoStAvail{value: amountIn}(data);
     }
 
-    function testRevertSwapFailed_swapETHToStAvail(bytes4 rand, uint256 amountIn, uint256 amountOut, uint256 minAmountOut) external {
+    function testRevertSwapFailed_swapETHToStAvail(
+        bytes4 rand,
+        uint256 amountIn,
+        uint256 amountOut,
+        uint256 minAmountOut
+    ) external {
         vm.assume(amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut <= amountOut);
         address from = makeAddr("from");
         vm.deal(from, amountIn);
@@ -325,7 +368,12 @@ contract DeqRouterTest is Test {
         deqRouter.swapETHtoStAvail{value: amountIn}(data);
     }
 
-    function testRevertInvalidSlippage_swapETHToStAvail(bytes4 rand, uint256 amountIn, uint256 amountOut, uint256 minAmountOut) external {
+    function testRevertInvalidSlippage_swapETHToStAvail(
+        bytes4 rand,
+        uint256 amountIn,
+        uint256 amountOut,
+        uint256 minAmountOut
+    ) external {
         vm.assume(amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut > amountOut);
         address from = makeAddr("from");
         vm.deal(from, amountIn);
