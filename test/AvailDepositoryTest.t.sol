@@ -7,9 +7,7 @@ import {TransparentUpgradeableProxy} from
     "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IERC20, StakedAvail} from "src/StakedAvail.sol";
 import {MockERC20} from "src/mocks/MockERC20.sol";
-import {
-    IAccessControl
-} from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
+import {IAccessControl} from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 import {IAvailDepository, AvailDepository} from "src/AvailDepository.sol";
 import {MockAvailBridge} from "src/mocks/MockAvailBridge.sol";
 import {IAvailBridge} from "src/interfaces/IAvailBridge.sol";

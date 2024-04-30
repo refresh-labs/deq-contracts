@@ -4,9 +4,7 @@ pragma solidity 0.8.25;
 import {Test} from "lib/forge-std/src/Test.sol";
 import {TransparentUpgradeableProxy} from
     "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {
-    IAccessControl
-} from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
+import {IAccessControl} from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 import {IERC20, IStakedAvail, StakedAvail} from "src/StakedAvail.sol";
 import {MockERC20} from "src/mocks/MockERC20.sol";
 import {AvailDepository} from "src/AvailDepository.sol";
@@ -25,7 +23,7 @@ contract StakedAvailTest is Test {
     address owner;
     address updater;
     SigUtils sigUtils;
-    
+
     bytes32 constant UPDATER_ROLE = keccak256("UPDATER_ROLE");
 
     function setUp() external {
@@ -56,8 +54,20 @@ contract StakedAvailTest is Test {
         assertEq(address(newStakedAvail.avail()), rand);
     }
 
-    function testRevertZeroAddress_initialize(address rand, address newOwner, address newUpdater, address newDepository, address newWithdrawalHelper) external {
-        vm.assume(rand != address(0) && (newOwner == address(0) || newUpdater == address(0) || newDepository == address(0) || newWithdrawalHelper == address(0)));
+    function testRevertZeroAddress_initialize(
+        address rand,
+        address newOwner,
+        address newUpdater,
+        address newDepository,
+        address newWithdrawalHelper
+    ) external {
+        vm.assume(
+            rand != address(0)
+                && (
+                    newOwner == address(0) || newUpdater == address(0) || newDepository == address(0)
+                        || newWithdrawalHelper == address(0)
+                )
+        );
         StakedAvail newStakedAvail = new StakedAvail(IERC20(rand));
         assertEq(address(newStakedAvail.avail()), rand);
         vm.expectRevert(IStakedAvail.ZeroAddress.selector);
@@ -294,7 +304,9 @@ contract StakedAvailTest is Test {
     function testRevertOnlyUpdater_updateAssets(int256 delta) external {
         address from = makeAddr("from");
         vm.assume(from != updater && delta != 0);
-        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, UPDATER_ROLE));
+        vm.expectRevert(
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, UPDATER_ROLE)
+        );
         vm.prank(from);
         stakedAvail.updateAssets(delta);
     }
@@ -324,7 +336,9 @@ contract StakedAvailTest is Test {
     function testRevertOnlyAdmin_forceUpdateAssets(uint256 assets) external {
         address from = makeAddr("from");
         vm.assume(assets != 0 && from != owner);
-        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0)));
+        vm.expectRevert(
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0))
+        );
         vm.prank(from);
         stakedAvail.forceUpdateAssets(assets);
     }
@@ -345,7 +359,9 @@ contract StakedAvailTest is Test {
     function testRevertOnlyAdmin_updateDepository(address newDepository) external {
         address from = makeAddr("from");
         vm.assume(from != owner);
-        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0)));
+        vm.expectRevert(
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0))
+        );
         vm.prank(from);
         stakedAvail.updateDepository(newDepository);
     }
@@ -366,7 +382,9 @@ contract StakedAvailTest is Test {
     function testRevertOnlyAdmin_updateWithdrawalHelper(address newWithdrawalHelper) external {
         address from = makeAddr("from");
         vm.assume(from != owner);
-        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0)));
+        vm.expectRevert(
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0))
+        );
         vm.prank(from);
         stakedAvail.updateWithdrawalHelper(IAvailWithdrawalHelper(newWithdrawalHelper));
     }
@@ -415,7 +433,6 @@ contract StakedAvailTest is Test {
         assertGt(stakedAvail.previewMint(amount), initialAmount);
         stakedAvail.forceUpdateAssets(uint256(amount) + 2);
         assertLt(stakedAvail.previewMint(amount), initialAmount);
-
     }
 
     function test_previewBurn(uint248 amount) external {
