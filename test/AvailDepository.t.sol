@@ -7,7 +7,10 @@ import {TransparentUpgradeableProxy} from
     "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IERC20, StakedAvail} from "src/StakedAvail.sol";
 import {MockERC20} from "src/mocks/MockERC20.sol";
-import {IAccessControl, IAccessControlDefaultAdminRules} from "lib/openzeppelin-contracts/contracts/access/extensions/AccessControlDefaultAdminRules.sol";
+import {
+    IAccessControl,
+    IAccessControlDefaultAdminRules
+} from "lib/openzeppelin-contracts/contracts/access/extensions/AccessControlDefaultAdminRules.sol";
 import {IAvailDepository, AvailDepository} from "src/AvailDepository.sol";
 import {MockAvailBridge} from "src/mocks/MockAvailBridge.sol";
 import {IAvailBridge} from "src/interfaces/IAvailBridge.sol";
@@ -84,7 +87,9 @@ contract StakedAvailTest is Test {
         address from = makeAddr("from");
         vm.assume(from != owner);
         vm.prank(from);
-        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from,  bytes32(0)));
+        vm.expectRevert(
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0))
+        );
         depository.updateBridge(newBridge);
     }
 
@@ -93,14 +98,18 @@ contract StakedAvailTest is Test {
         address from = makeAddr("from");
         vm.assume(from != owner);
         vm.prank(from);
-        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from,  bytes32(0)));
+        vm.expectRevert(
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0))
+        );
         depository.updateDepository(newDepository);
     }
 
     function testRevertOnlyDepositor_deposit() external {
         address from = makeAddr("from");
         vm.assume(from != depositor);
-        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, DEPOSITOR_ROLE));
+        vm.expectRevert(
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, DEPOSITOR_ROLE)
+        );
         vm.prank(from);
         depository.deposit();
     }
