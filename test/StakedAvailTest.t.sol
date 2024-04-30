@@ -4,12 +4,15 @@ pragma solidity 0.8.25;
 import {Test} from "lib/forge-std/src/Test.sol";
 import {TransparentUpgradeableProxy} from
     "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {IERC20, StakedAvail} from "src/StakedAvail.sol";
+import {
+    IAccessControl
+} from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
+import {IERC20, IStakedAvail, StakedAvail} from "src/StakedAvail.sol";
 import {MockERC20} from "src/mocks/MockERC20.sol";
 import {AvailDepository} from "src/AvailDepository.sol";
 import {MockAvailBridge} from "src/mocks/MockAvailBridge.sol";
 import {IAvailBridge} from "src/interfaces/IAvailBridge.sol";
-import {AvailWithdrawalHelper} from "src/AvailWithdrawalHelper.sol";
+import {IAvailWithdrawalHelper, AvailWithdrawalHelper} from "src/AvailWithdrawalHelper.sol";
 import {SigUtils} from "./helpers/SigUtils.sol";
 import {console} from "lib/forge-std/src/console.sol";
 
@@ -20,10 +23,14 @@ contract StakedAvailTest is Test {
     IAvailBridge public bridge;
     AvailWithdrawalHelper public withdrawalHelper;
     address owner;
+    address updater;
     SigUtils sigUtils;
+    
+    bytes32 constant UPDATER_ROLE = keccak256("UPDATER_ROLE");
 
     function setUp() external {
         owner = msg.sender;
+        updater = makeAddr("updater");
         avail = new MockERC20("Avail", "AVAIL");
         bridge = IAvailBridge(address(new MockAvailBridge(avail)));
         address impl = address(new StakedAvail(avail));
@@ -35,15 +42,39 @@ contract StakedAvailTest is Test {
             AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, msg.sender, "")));
         withdrawalHelper.initialize(msg.sender, stakedAvail, 1 ether);
         depository.initialize(msg.sender, bridge, msg.sender, bytes32(abi.encode(1)));
-        stakedAvail.initialize(msg.sender, msg.sender, address(depository), withdrawalHelper);
+        stakedAvail.initialize(msg.sender, updater, address(depository), withdrawalHelper);
+    }
+
+    function testRevertZeroAddress_constructor() external {
+        vm.expectRevert(IStakedAvail.ZeroAddress.selector);
+        new StakedAvail(IERC20(address(0)));
+    }
+
+    function test_constructor(address rand) external {
+        vm.assume(rand != address(0));
+        StakedAvail newStakedAvail = new StakedAvail(IERC20(rand));
+        assertEq(address(newStakedAvail.avail()), rand);
+    }
+
+    function testRevertZeroAddress_initialize(address rand, address newOwner, address newUpdater, address newDepository, address newWithdrawalHelper) external {
+        vm.assume(rand != address(0) && (newOwner == address(0) || newUpdater == address(0) || newDepository == address(0) || newWithdrawalHelper == address(0)));
+        StakedAvail newStakedAvail = new StakedAvail(IERC20(rand));
+        assertEq(address(newStakedAvail.avail()), rand);
+        vm.expectRevert(IStakedAvail.ZeroAddress.selector);
+        newStakedAvail.initialize(newOwner, newUpdater, newDepository, IAvailWithdrawalHelper(newWithdrawalHelper));
     }
 
     function test_initialize() external view {
         assertEq(address(stakedAvail.avail()), address(avail));
         assertEq(stakedAvail.owner(), owner);
-        assert(stakedAvail.hasRole(keccak256("UPDATER_ROLE"), owner));
+        assertTrue(stakedAvail.hasRole(UPDATER_ROLE, updater));
         assertEq(stakedAvail.depository(), address(depository));
         assertEq(address(stakedAvail.withdrawalHelper()), address(withdrawalHelper));
+    }
+
+    function testRevertZeroAmount_mint() external {
+        vm.expectRevert(IStakedAvail.ZeroAmount.selector);
+        stakedAvail.mint(0);
     }
 
     function test_mint(uint256 amount) external {
@@ -95,7 +126,7 @@ contract StakedAvailTest is Test {
         assertEq(stakedAvail.assets(), amount1);
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
         assertEq(avail.balanceOf(address(depository)), amount1);
-        vm.startPrank(owner);
+        vm.startPrank(updater);
         // inflate value of stAvail
         stakedAvail.updateAssets(int256(random));
         vm.startPrank(from);
@@ -122,7 +153,7 @@ contract StakedAvailTest is Test {
         assertEq(stakedAvail.assets(), amount1);
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
         assertEq(avail.balanceOf(address(depository)), amount1);
-        vm.startPrank(owner);
+        vm.startPrank(updater);
         uint256 reduction = amount1 / 2;
         // deflate value of stAvail
         stakedAvail.updateAssets(-int256(amount1 / 2));
@@ -133,6 +164,11 @@ contract StakedAvailTest is Test {
         assertEq(stakedAvail.assets(), amount1 + amount2 - reduction);
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
         assertEq(avail.balanceOf(address(depository)), amount1 + amount2);
+    }
+
+    function testRevertZeroAmount_mintTo(address rand) external {
+        vm.expectRevert(IStakedAvail.ZeroAmount.selector);
+        stakedAvail.mintTo(rand, 0);
     }
 
     function test_mintTo(uint256 amount) external {
@@ -147,6 +183,11 @@ contract StakedAvailTest is Test {
         assertEq(stakedAvail.assets(), amount);
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
         assertEq(avail.balanceOf(address(depository)), amount);
+    }
+
+    function testRevertZeroAmount_burn() external {
+        vm.expectRevert(IStakedAvail.ZeroAmount.selector);
+        stakedAvail.burn(0);
     }
 
     function test_burn(uint256 amount) external {
@@ -220,6 +261,11 @@ contract StakedAvailTest is Test {
         assertEq(stakedAvail.balanceOf(from), amount - burnAmt1 - burnAmt2);
     }
 
+    function testRevertZeroAmount_mintWithPermit(uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
+        vm.expectRevert(IStakedAvail.ZeroAmount.selector);
+        stakedAvail.mintWithPermit(0, deadline, v, r, s);
+    }
+
     function test_mintWithPermit(uint256 amount, uint256 deadline) external {
         vm.assume(amount != 0 && deadline != 0);
         (address from, uint256 key) = makeAddrAndKey("from");
@@ -243,5 +289,149 @@ contract StakedAvailTest is Test {
         assertEq(stakedAvail.assets(), amount);
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
         assertEq(avail.balanceOf(address(depository)), amount);
+    }
+
+    function testRevertOnlyUpdater_updateAssets(int256 delta) external {
+        address from = makeAddr("from");
+        vm.assume(from != updater && delta != 0);
+        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, UPDATER_ROLE));
+        vm.prank(from);
+        stakedAvail.updateAssets(delta);
+    }
+
+    function testRevertInvalidUpdate_updateAssets() external {
+        vm.expectRevert(IStakedAvail.InvalidUpdate.selector);
+        vm.prank(updater);
+        stakedAvail.updateAssets(0);
+    }
+
+    function test_updateAssets(uint248 assets, int240 delta) external {
+        vm.assume(delta != 0 && assets != 0);
+        vm.assume(uint256(assets) > uint256(int256(delta)));
+        vm.prank(owner);
+        stakedAvail.forceUpdateAssets(assets);
+        if (delta < 0) {
+            vm.startPrank(updater);
+            stakedAvail.updateAssets(delta);
+            assertEq(stakedAvail.assets(), uint256(assets) - uint256(int256(-delta)));
+        } else {
+            vm.startPrank(updater);
+            stakedAvail.updateAssets(delta);
+            assertEq(stakedAvail.assets(), uint256(assets) + uint256(int256(delta)));
+        }
+    }
+
+    function testRevertOnlyAdmin_forceUpdateAssets(uint256 assets) external {
+        address from = makeAddr("from");
+        vm.assume(assets != 0 && from != owner);
+        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0)));
+        vm.prank(from);
+        stakedAvail.forceUpdateAssets(assets);
+    }
+
+    function testRevertInvalidUpdate_forceUpdateAssets() external {
+        vm.expectRevert(IStakedAvail.InvalidUpdate.selector);
+        vm.prank(owner);
+        stakedAvail.forceUpdateAssets(0);
+    }
+
+    function test_forceUpdateAssets(uint256 assets) external {
+        vm.assume(assets != 0);
+        vm.prank(owner);
+        stakedAvail.forceUpdateAssets(assets);
+        assertEq(stakedAvail.assets(), assets);
+    }
+
+    function testRevertOnlyAdmin_updateDepository(address newDepository) external {
+        address from = makeAddr("from");
+        vm.assume(from != owner);
+        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0)));
+        vm.prank(from);
+        stakedAvail.updateDepository(newDepository);
+    }
+
+    function testRevertZeroAddress_updateDepository() external {
+        vm.prank(owner);
+        vm.expectRevert(IStakedAvail.ZeroAddress.selector);
+        stakedAvail.updateDepository(address(0));
+    }
+
+    function test_updateDepository(address newDepository) external {
+        vm.assume(newDepository != address(0));
+        vm.prank(owner);
+        stakedAvail.updateDepository(newDepository);
+        assertEq(stakedAvail.depository(), newDepository);
+    }
+
+    function testRevertOnlyAdmin_updateWithdrawalHelper(address newWithdrawalHelper) external {
+        address from = makeAddr("from");
+        vm.assume(from != owner);
+        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0)));
+        vm.prank(from);
+        stakedAvail.updateWithdrawalHelper(IAvailWithdrawalHelper(newWithdrawalHelper));
+    }
+
+    function testRevertZeroAddress_updateWithdrawalHelper() external {
+        vm.prank(owner);
+        vm.expectRevert(IStakedAvail.ZeroAddress.selector);
+        stakedAvail.updateWithdrawalHelper(IAvailWithdrawalHelper(address(0)));
+    }
+
+    function test_updateWithdrawalHelper(address newWithdrawalHelper) external {
+        vm.assume(newWithdrawalHelper != address(0));
+        vm.prank(owner);
+        stakedAvail.updateWithdrawalHelper(IAvailWithdrawalHelper(newWithdrawalHelper));
+        assertEq(address(stakedAvail.withdrawalHelper()), newWithdrawalHelper);
+    }
+
+    function testRevertOnlyWithdrawalHelper_updateAssetsFromWithdrawalHelper(uint256 amount) external {
+        address from = makeAddr("from");
+        vm.assume(from != address(withdrawalHelper));
+        vm.expectRevert(IStakedAvail.OnlyWithdrawalHelper.selector);
+        vm.prank(from);
+        stakedAvail.updateAssetsFromWithdrawals(amount);
+    }
+
+    function test_updateAssetsFromWithdrawalHelper(uint256 assets, uint256 burnAmount) external {
+        vm.assume(assets != 0 && burnAmount <= assets);
+        vm.prank(owner);
+        stakedAvail.forceUpdateAssets(assets);
+        vm.prank(address(withdrawalHelper));
+        stakedAvail.updateAssetsFromWithdrawals(burnAmount);
+        assertEq(stakedAvail.assets(), assets - burnAmount);
+    }
+
+    function test_previewMint(uint248 amount) external {
+        vm.assume(amount > 2);
+        uint256 initialAmount = stakedAvail.previewMint(amount);
+        assertEq(initialAmount, amount);
+        address from = makeAddr("from");
+        vm.startPrank(from);
+        avail.mint(from, amount);
+        avail.approve(address(stakedAvail), amount);
+        stakedAvail.mint(amount);
+        vm.startPrank(owner);
+        stakedAvail.forceUpdateAssets(uint256(amount) - 2);
+        assertGt(stakedAvail.previewMint(amount), initialAmount);
+        stakedAvail.forceUpdateAssets(uint256(amount) + 2);
+        assertLt(stakedAvail.previewMint(amount), initialAmount);
+
+    }
+
+    function test_previewBurn(uint248 amount) external {
+        vm.assume(amount > 2);
+        uint256 initialAmount = stakedAvail.previewBurn(amount);
+        assertEq(initialAmount, amount);
+        address from = makeAddr("from");
+        vm.startPrank(from);
+        avail.mint(from, amount);
+        avail.approve(address(stakedAvail), amount);
+        stakedAvail.mint(amount);
+        vm.startPrank(owner);
+        // use two here because floor division
+        stakedAvail.forceUpdateAssets(uint256(amount) - 2);
+        assertLt(stakedAvail.previewBurn(amount), initialAmount);
+        stakedAvail.forceUpdateAssets(uint256(amount) + 2);
+        assertGt(stakedAvail.previewBurn(amount), initialAmount);
     }
 }
