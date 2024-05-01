@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.25;
 
-import {Test} from "lib/forge-std/src/Test.sol";
+import {StdUtils, Test} from "lib/forge-std/src/Test.sol";
 import {TransparentUpgradeableProxy} from
     "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IAccessControl} from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
@@ -14,7 +14,7 @@ import {IAvailWithdrawalHelper, AvailWithdrawalHelper} from "src/AvailWithdrawal
 import {SigUtils} from "./helpers/SigUtils.sol";
 import {console} from "lib/forge-std/src/console.sol";
 
-contract StakedAvailTest is Test {
+contract StakedAvailTest is StdUtils, Test {
     StakedAvail public stakedAvail;
     MockERC20 public avail;
     AvailDepository public depository;
@@ -213,9 +213,12 @@ contract StakedAvailTest is Test {
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
         assertEq(avail.balanceOf(address(depository)), amount);
         stakedAvail.burn(amount);
-        assertEq(withdrawalHelper.withdrawalAmounts(1), amount);
+        (uint256 amt, uint256 shares) = withdrawalHelper.getWithdrawal(1);
+        assertEq(amt, amount);
+        assertEq(shares, amount);
         assertEq(withdrawalHelper.ownerOf(1), from);
         assertEq(stakedAvail.balanceOf(from), 0);
+        assertEq(stakedAvail.balanceOf(address(stakedAvail)), amount);
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
         assertEq(avail.balanceOf(address(depository)), amount);
     }
@@ -236,9 +239,12 @@ contract StakedAvailTest is Test {
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
         assertEq(avail.balanceOf(address(depository)), amount);
         stakedAvail.burn(burnAmt);
-        assertEq(withdrawalHelper.withdrawalAmounts(1), burnAmt);
+        (uint256 amt, uint256 shares) = withdrawalHelper.getWithdrawal(1);
+        assertEq(amt, burnAmt);
+        assertEq(shares, burnAmt);
         assertEq(withdrawalHelper.ownerOf(1), from);
         assertEq(stakedAvail.balanceOf(from), amount - burnAmt);
+        assertEq(stakedAvail.balanceOf(address(stakedAvail)), burnAmt);
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
         assertEq(avail.balanceOf(address(depository)), amount);
     }
@@ -261,12 +267,16 @@ contract StakedAvailTest is Test {
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
         assertEq(avail.balanceOf(address(depository)), amount);
         stakedAvail.burn(burnAmtA);
-        assertEq(withdrawalHelper.withdrawalAmounts(1), burnAmt1);
+        (uint256 shares, uint256 amt) = withdrawalHelper.getWithdrawal(1);
+        assertEq(amt, burnAmt1);
+        assertEq(shares, burnAmt1);
         assertEq(withdrawalHelper.ownerOf(1), from);
         assertEq(stakedAvail.balanceOf(from), amount - burnAmt1);
+        assertEq(stakedAvail.balanceOf(address(stakedAvail)), burnAmt1);
         stakedAvail.burn(burnAmtB);
-        // burning inflates the value of stAVL
-        assertGe(withdrawalHelper.withdrawalAmounts(2), burnAmt2);
+        (shares, amt) = withdrawalHelper.getWithdrawal(2);
+        assertEq(amt, burnAmtB);
+        assertEq(shares, burnAmtB);
         assertEq(withdrawalHelper.ownerOf(2), from);
         assertEq(stakedAvail.balanceOf(from), amount - burnAmt1 - burnAmt2);
     }
@@ -402,21 +412,29 @@ contract StakedAvailTest is Test {
         assertEq(address(stakedAvail.withdrawalHelper()), newWithdrawalHelper);
     }
 
-    function testRevertOnlyWithdrawalHelper_updateAssetsFromWithdrawalHelper(uint256 amount) external {
+    function testRevertOnlyWithdrawalHelper_updateAssetsFromWithdrawalHelper(uint256 amount, uint256 shares) external {
         address from = makeAddr("from");
         vm.assume(from != address(withdrawalHelper));
         vm.expectRevert(IStakedAvail.OnlyWithdrawalHelper.selector);
         vm.prank(from);
-        stakedAvail.updateAssetsFromWithdrawals(amount);
+        stakedAvail.updateAssetsFromWithdrawals(amount, shares);
     }
 
-    function test_updateAssetsFromWithdrawalHelper(uint256 assets, uint256 burnAmount) external {
-        vm.assume(assets != 0 && burnAmount <= assets);
-        vm.prank(owner);
+    function test_updateAssetsFromWithdrawalHelper(uint256 assets, uint256 amount, uint256 burnAmount, uint256 burnShares) external {
+        vm.assume(assets != 0 && amount != 0 && burnAmount != 0 && burnShares != 0 && burnAmount <= assets && burnShares <= amount);
+        address from = makeAddr("from");
+        vm.startPrank(from);
+        avail.mint(from, amount);
+        avail.approve(address(stakedAvail), amount);
+        stakedAvail.mint(amount);
+        // need deal here because we don't burn and get stAVAIL at stAVAIL address
+        deal(address(stakedAvail), address(stakedAvail), burnShares);
+        vm.startPrank(owner);
         stakedAvail.forceUpdateAssets(assets);
-        vm.prank(address(withdrawalHelper));
-        stakedAvail.updateAssetsFromWithdrawals(burnAmount);
+        vm.startPrank(address(withdrawalHelper));
+        stakedAvail.updateAssetsFromWithdrawals(burnAmount, burnShares);
         assertEq(stakedAvail.assets(), assets - burnAmount);
+        assertEq(stakedAvail.totalSupply(), amount - burnShares);
     }
 
     function test_previewMint(uint248 amount) external {
@@ -450,5 +468,23 @@ contract StakedAvailTest is Test {
         assertLt(stakedAvail.previewBurn(amount), initialAmount);
         stakedAvail.forceUpdateAssets(uint256(amount) + 2);
         assertGt(stakedAvail.previewBurn(amount), initialAmount);
+    }
+
+    function test_previewBurn2(uint248 amount) external {
+        // test that burning does not inflate value of stakedAvail
+        vm.assume(amount > 4 ether);
+        uint256 initialAmount = stakedAvail.previewBurn(amount);
+        assertEq(initialAmount, amount);
+        address from = makeAddr("from");
+        vm.startPrank(from);
+        avail.mint(from, amount);
+        avail.approve(address(stakedAvail), amount);
+        stakedAvail.mint(amount);
+        vm.startPrank(from);
+        // use two here because floor division
+        uint256 amt = stakedAvail.previewBurn(amount / 4);
+        stakedAvail.burn(amount / 4);
+        uint256 amt2 = stakedAvail.previewBurn(amount / 4);
+        assertEq(amt, amt2);
     }
 }

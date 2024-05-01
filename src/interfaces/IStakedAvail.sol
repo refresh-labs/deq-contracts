@@ -17,7 +17,7 @@ interface IStakedAvail is IERC20 {
     event WithdrawalHelperUpdated(address withdrawalHelper);
 
     function updateAssets(int256 delta) external;
-    function updateAssetsFromWithdrawals(uint256 amount) external;
+    function updateAssetsFromWithdrawals(uint256 amount, uint256 shares) external;
     function forceUpdateAssets(uint256 _assets) external;
     function updateDepository(address _depository) external;
     function updateWithdrawalHelper(IAvailWithdrawalHelper _withdrawalHelper) external;

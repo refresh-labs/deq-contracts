@@ -69,44 +69,50 @@ contract AvailWithdrawalHelperTest is Test {
         assertTrue(withdrawalHelper.supportsInterface(0x01ffc9a7));
     }
 
-    function testRevertOnlyStakedAvail_mint(address account, uint256 amount) external {
+    function testRevertOnlyStakedAvail_mint(address account, uint256 amount, uint256 shares) external {
         vm.expectRevert(IAvailWithdrawalHelper.OnlyStakedAvail.selector);
-        withdrawalHelper.mint(account, amount);
+        withdrawalHelper.mint(account, amount, shares);
     }
 
-    function testRevertInvalidWithdrawalAmount_mint(address account, uint256 amount) external {
+    function testRevertInvalidWithdrawalAmount_mint(address account, uint256 amount, uint256 shares) external {
         vm.assume(amount < withdrawalHelper.minWithdrawal());
         vm.prank(address(stakedAvail));
         vm.expectRevert(IAvailWithdrawalHelper.InvalidWithdrawalAmount.selector);
-        withdrawalHelper.mint(account, amount);
+        withdrawalHelper.mint(account, amount, shares);
     }
 
-    function test_mint(address account, uint256 amount) external {
+    function test_mint(address account, uint256 amount, uint256 shares) external {
         vm.assume(amount > withdrawalHelper.minWithdrawal() && account != address(0));
         vm.prank(address(stakedAvail));
-        withdrawalHelper.mint(account, amount);
+        withdrawalHelper.mint(account, amount, shares);
+        (uint256 amt, uint256 shrs) = withdrawalHelper.getWithdrawal(1);
         assertEq(withdrawalHelper.withdrawalAmount(), amount);
         assertEq(withdrawalHelper.lastTokenId(), 1);
-        assertEq(withdrawalHelper.withdrawalAmounts(1), amount);
+        assertEq(amount, amt);
+        assertEq(shares, shrs);
         assertEq(withdrawalHelper.previewFulfill(1), amount);
     }
 
-    function test_mintTwice(address account, uint248 amount) external {
+    function test_mintTwice(address account, uint248 amount, uint248 shares) external {
         vm.assume(amount > withdrawalHelper.minWithdrawal() && account != address(0));
         vm.startPrank(address(stakedAvail));
-        withdrawalHelper.mint(account, amount);
-        withdrawalHelper.mint(account, amount);
+        withdrawalHelper.mint(account, amount, shares);
+        withdrawalHelper.mint(account, amount, shares);
+        (uint256 amt1, uint256 shrs1) = withdrawalHelper.getWithdrawal(1);
+        (uint256 amt2, uint256 shrs2) = withdrawalHelper.getWithdrawal(1);
         assertEq(withdrawalHelper.withdrawalAmount(), uint256(amount) * 2);
         assertEq(withdrawalHelper.lastTokenId(), 2);
-        assertEq(withdrawalHelper.withdrawalAmounts(1), amount);
-        assertEq(withdrawalHelper.withdrawalAmounts(2), amount);
+        assertEq(amt1, amount);
+        assertEq(shrs1, shares);
+        assertEq(amt2, amount);
+        assertEq(shrs2, shares);
         assertEq(withdrawalHelper.previewFulfill(2), uint256(amount) * 2);
     }
 
-    function testRevertNotFulfilled_burn(address account, uint256 amount) external {
+    function testRevertNotFulfilled_burn(address account, uint256 amount, uint256 shares) external {
         vm.assume(amount > withdrawalHelper.minWithdrawal() && account != address(0));
         vm.prank(address(stakedAvail));
-        withdrawalHelper.mint(account, amount);
+        withdrawalHelper.mint(account, amount, shares);
         vm.expectRevert(IAvailWithdrawalHelper.NotFulfilled.selector);
         withdrawalHelper.burn(1);
     }
@@ -120,28 +126,49 @@ contract AvailWithdrawalHelperTest is Test {
         stakedAvail.mint(amount);
         stakedAvail.burn(amount);
         avail.mint(address(withdrawalHelper), amount);
+        (uint256 amt1, uint256 shrs1) = withdrawalHelper.getWithdrawal(1);
+        assertEq(amt1, amount);
+        assertEq(shrs1, amount);
         withdrawalHelper.burn(1);
         assertEq(withdrawalHelper.withdrawalAmount(), 0);
         assertEq(withdrawalHelper.lastFulfillment(), 1);
         assertEq(withdrawalHelper.previewFulfill(1), 0);
-        assertEq(withdrawalHelper.withdrawalAmounts(1), 0);
         assertEq(avail.balanceOf(from), amount);
+        assertEq(stakedAvail.balanceOf(from), 0);
+        assertEq(stakedAvail.balanceOf(address(stakedAvail)), 0);
+        assertEq(stakedAvail.totalSupply(), 0);
+        assertEq(stakedAvail.assets(), 0);
     }
 
-    function test_burnTwice(uint248 amount) external {
-        vm.assume(amount > withdrawalHelper.minWithdrawal());
+    function test_burnTwice(uint248 amount, uint248 burnAmount) external {
+        vm.assume(amount > burnAmount && (amount - burnAmount) > withdrawalHelper.minWithdrawal() && burnAmount > withdrawalHelper.minWithdrawal());
         address from = makeAddr("from");
         avail.mint(from, amount);
         vm.startPrank(from);
         avail.approve(address(stakedAvail), amount);
         stakedAvail.mint(amount);
-        stakedAvail.burn(amount);
+        stakedAvail.burn(amount - burnAmount);
         avail.mint(address(withdrawalHelper), amount);
+        (uint256 amt2, uint256 shrs2) = withdrawalHelper.getWithdrawal(1);
+        assertEq(amt2, amount - burnAmount);
+        assertEq(shrs2, amount - burnAmount);
         withdrawalHelper.burn(1);
         assertEq(withdrawalHelper.withdrawalAmount(), 0);
         assertEq(withdrawalHelper.lastFulfillment(), 1);
         assertEq(withdrawalHelper.previewFulfill(1), 0);
-        assertEq(withdrawalHelper.withdrawalAmounts(1), 0);
-        assertEq(avail.balanceOf(from), amount);
+        assertEq(avail.balanceOf(from), amount - burnAmount);
+        assertEq(stakedAvail.balanceOf(from), burnAmount);
+        assertEq(stakedAvail.balanceOf(address(stakedAvail)), 0);
+        assertEq(stakedAvail.totalSupply(), burnAmount);
+        assertEq(stakedAvail.assets(), burnAmount);
+        stakedAvail.burn(burnAmount);
+        withdrawalHelper.burn(2);
+        assertEq(withdrawalHelper.withdrawalAmount(), 0);
+        assertEq(withdrawalHelper.lastFulfillment(), 2);
+        assertEq(withdrawalHelper.previewFulfill(1), 0);
+        assertEq(stakedAvail.balanceOf(from), 0);
+        assertEq(stakedAvail.balanceOf(address(stakedAvail)), 0);
+        assertEq(stakedAvail.totalSupply(), 0);
+        assertEq(stakedAvail.assets(), 0);
     }
 }

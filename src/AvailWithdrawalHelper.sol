@@ -23,8 +23,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
     uint256 public withdrawalAmount;
     uint256 public lastFulfillment;
     uint256 public minWithdrawal;
-
-    mapping(uint256 => uint256) public withdrawalAmounts;
+    mapping(uint256 => Withdrawal) private withdrawals;
 
     constructor(IERC20 newAvail) {
         if (address(newAvail) == address(0)) revert ZeroAddress();
@@ -47,7 +46,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
         uint256 amount = 0; // @audit-info: No need to initialize amount to 0
         uint256 i = lastFulfillment + 1;
         for (; i <= till;) {
-            amount += withdrawalAmounts[i];
+            amount += withdrawals[i].amount;
             unchecked {
                 ++i;
             }
@@ -55,14 +54,15 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
         return amount;
     }
 
-    function mint(address account, uint256 amount) external {
+    function mint(address account, uint256 amount, uint256 shares) external {
         if (msg.sender != address(stAvail)) revert OnlyStakedAvail();
         if (amount < minWithdrawal) revert InvalidWithdrawalAmount();
         uint256 tokenId;
         unchecked {
             tokenId = ++lastTokenId;
         }
-        withdrawalAmounts[tokenId] = amount;
+
+        withdrawals[tokenId] = Withdrawal(amount, shares);
         // slither-disable-next-line events-maths
         withdrawalAmount += amount;
         _mint(account, tokenId);
@@ -73,19 +73,22 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
             // increment lastFulfillment to id
             _fulfill(id);
         }
-        uint256 amount = withdrawalAmounts[id];
-        withdrawalAmount -= amount;
-        // get some gas back
-        delete withdrawalAmounts[id];
+        Withdrawal memory withdrawal = withdrawals[id];
         address owner = ownerOf(id);
+        withdrawalAmount -= withdrawal.amount;
+        delete withdrawals[id];
         _burn(id);
-        stAvail.updateAssetsFromWithdrawals(amount);
-        avail.safeTransfer(owner, amount);
+        stAvail.updateAssetsFromWithdrawals(withdrawal.amount, withdrawal.shares);
+        avail.safeTransfer(owner, withdrawal.amount);
     }
 
+    function getWithdrawal(uint256 id) external view returns (uint256 amount, uint256 shares) {
+        Withdrawal memory withdrawal = withdrawals[id];
+        return (withdrawal.amount, withdrawal.shares);
+    }   
+
     function _fulfill(uint256 till) private {
-        uint256 amount = previewFulfill(till);
-        if (avail.balanceOf(address(this)) < amount) {
+        if (avail.balanceOf(address(this)) < previewFulfill(till)) {
             revert NotFulfilled();
         }
         lastFulfillment = till;

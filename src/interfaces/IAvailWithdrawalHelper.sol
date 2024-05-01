@@ -5,6 +5,11 @@ import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721
 import {IStakedAvail} from "./IStakedAvail.sol";
 
 interface IAvailWithdrawalHelper is IERC721 {
+    struct Withdrawal {
+        uint256 amount;
+        uint256 shares;
+    }
+
     error InvalidInput();
     error InvalidWithdrawalAmount();
     error NotFulfilled();
@@ -17,8 +22,7 @@ interface IAvailWithdrawalHelper is IERC721 {
     function withdrawalAmount() external view returns (uint256);
     function lastFulfillment() external view returns (uint256);
     function minWithdrawal() external view returns (uint256);
-    function withdrawalAmounts(uint256 id) external view returns (uint256 amount);
     function previewFulfill(uint256 till) external view returns (uint256 amount);
-    function mint(address account, uint256 amount) external;
+    function mint(address account, uint256 amount, uint256 shares) external;
     function burn(uint256 id) external;
 }

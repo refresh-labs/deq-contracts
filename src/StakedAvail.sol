@@ -67,10 +67,11 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         emit AssetsUpdated(_assets);
     }
 
-    function updateAssetsFromWithdrawals(uint256 amount) external {
+    function updateAssetsFromWithdrawals(uint256 amount, uint256 shares) external {
         if (msg.sender != address(withdrawalHelper)) revert OnlyWithdrawalHelper();
         uint256 _assets = assets - amount;
         assets = _assets;
+        _burn(address(this), shares);
 
         emit AssetsUpdated(_assets);
     }
@@ -96,12 +97,12 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         emit WithdrawalHelperUpdated(address(newWithdrawalHelper));
     }
 
-    function previewMint(uint256 amount) public view returns (uint256) {
+    function previewMint(uint256 amount) public view returns (uint256 shares) {
         return amount.mulDiv(totalSupply() + 1, assets + 1, Math.Rounding.Floor);
     }
 
-    function previewBurn(uint256 amount) public view returns (uint256) {
-        return amount.mulDiv(assets + 1, totalSupply() + 1, Math.Rounding.Floor);
+    function previewBurn(uint256 shares) public view returns (uint256 amount) {
+        return shares.mulDiv(assets + 1, totalSupply() + 1, Math.Rounding.Floor);
     }
 
     function mintWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
@@ -132,10 +133,10 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         avail.safeTransferFrom(msg.sender, depository, amount);
     }
 
-    function burn(uint256 amount) external {
-        if (amount == 0) revert ZeroAmount();
-        uint256 shares = previewBurn(amount);
-        _burn(msg.sender, amount);
-        withdrawalHelper.mint(msg.sender, shares);
+    function burn(uint256 shares) external {
+        if (shares == 0) revert ZeroAmount();
+        uint256 amount = previewBurn(shares);
+        _transfer(msg.sender, address(this), shares);
+        withdrawalHelper.mint(msg.sender, amount, shares);
     }
 }
