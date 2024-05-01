@@ -34,6 +34,7 @@ contract DeqRouter is IDeqRouter {
         if (!success) revert SwapFailed(string(result));
         uint256 outAmount = abi.decode(result, (uint256));
         if (outAmount < minOutAmount) revert ExceedsSlippage();
+        // slither-disable-next-line unused-return
         avail.approve(address(stAvail), outAmount);
         stAvail.mintTo(msg.sender, outAmount);
     }
@@ -57,6 +58,7 @@ contract DeqRouter is IDeqRouter {
         if (!success) revert SwapFailed(string(result));
         uint256 outAmount = abi.decode(result, (uint256));
         if (outAmount < minOutAmount) revert ExceedsSlippage();
+        // slither-disable-next-line unused-return
         avail.approve(address(stAvail), outAmount);
         stAvail.mintTo(msg.sender, outAmount);
     }
@@ -72,6 +74,7 @@ contract DeqRouter is IDeqRouter {
         if (!success) revert SwapFailed(string(result));
         uint256 outAmount = abi.decode(result, (uint256));
         if (outAmount < minOutAmount) revert ExceedsSlippage();
+        // slither-disable-next-line unused-return
         avail.approve(address(stAvail), outAmount);
         stAvail.mintTo(msg.sender, outAmount);
     }

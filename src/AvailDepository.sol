@@ -50,7 +50,8 @@ contract AvailDepository is AccessControlDefaultAdminRulesUpgradeable, IAvailDep
 
     function deposit() external onlyRole(DEPOSITOR_ROLE) {
         uint256 amount = avail.balanceOf(address(this));
-        // keep 1 wei so slot stays warm
+        // keep 1 wei so slot stays warm, intentionally leave return unused, since OZ impl does not return false
+        // slither-disable-next-line unused-return
         avail.approve(address(bridge), amount - 1);
         bridge.sendAVAIL(depository, amount - 1);
     }
