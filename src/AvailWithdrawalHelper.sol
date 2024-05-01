@@ -85,7 +85,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
     function getWithdrawal(uint256 id) external view returns (uint256 amount, uint256 shares) {
         Withdrawal memory withdrawal = withdrawals[id];
         return (withdrawal.amount, withdrawal.shares);
-    }   
+    }
 
     function _fulfill(uint256 till) private {
         if (avail.balanceOf(address(this)) < previewFulfill(till)) {

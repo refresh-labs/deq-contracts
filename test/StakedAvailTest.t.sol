@@ -420,8 +420,16 @@ contract StakedAvailTest is StdUtils, Test {
         stakedAvail.updateAssetsFromWithdrawals(amount, shares);
     }
 
-    function test_updateAssetsFromWithdrawalHelper(uint256 assets, uint256 amount, uint256 burnAmount, uint256 burnShares) external {
-        vm.assume(assets != 0 && amount != 0 && burnAmount != 0 && burnShares != 0 && burnAmount <= assets && burnShares <= amount);
+    function test_updateAssetsFromWithdrawalHelper(
+        uint256 assets,
+        uint256 amount,
+        uint256 burnAmount,
+        uint256 burnShares
+    ) external {
+        vm.assume(
+            assets != 0 && amount != 0 && burnAmount != 0 && burnShares != 0 && burnAmount <= assets
+                && burnShares <= amount
+        );
         address from = makeAddr("from");
         vm.startPrank(from);
         avail.mint(from, amount);

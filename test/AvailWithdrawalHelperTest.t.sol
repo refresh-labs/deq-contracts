@@ -141,7 +141,10 @@ contract AvailWithdrawalHelperTest is Test {
     }
 
     function test_burnTwice(uint248 amount, uint248 burnAmount) external {
-        vm.assume(amount > burnAmount && (amount - burnAmount) > withdrawalHelper.minWithdrawal() && burnAmount > withdrawalHelper.minWithdrawal());
+        vm.assume(
+            amount > burnAmount && (amount - burnAmount) > withdrawalHelper.minWithdrawal()
+                && burnAmount > withdrawalHelper.minWithdrawal()
+        );
         address from = makeAddr("from");
         avail.mint(from, amount);
         vm.startPrank(from);
