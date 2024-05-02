@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.25;
 
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC20Permit} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
+import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+
 import {IDeqRouter} from "src/interfaces/IDeqRouter.sol";
+import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
 
 contract DeqRouter is IDeqRouter {
     using SafeERC20 for IERC20;
@@ -50,7 +51,8 @@ contract DeqRouter is IDeqRouter {
         (IERC20 tokenIn, IERC20 tokenOut, uint256 inAmount, uint256 minOutAmount,) =
             abi.decode(data[4:], (IERC20, IERC20, uint256, uint256, Transformation[]));
         if (address(tokenOut) != address(avail)) revert InvalidOutputToken();
-        IERC20Permit(address(tokenIn)).permit(msg.sender, address(this), inAmount, deadline, v, r, s);
+        // if permit fails, assume executed
+        try IERC20Permit(address(tokenIn)).permit(msg.sender, address(this), inAmount, deadline, v, r, s) {} catch {}
         tokenIn.safeTransferFrom(msg.sender, address(this), inAmount);
         tokenIn.forceApprove(allowanceTarget, inAmount);
         // slither-disable-next-line low-level-calls

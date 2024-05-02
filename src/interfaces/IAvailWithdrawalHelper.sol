@@ -6,7 +6,7 @@ import {IStakedAvail} from "./IStakedAvail.sol";
 
 interface IAvailWithdrawalHelper is IERC721 {
     struct Withdrawal {
-        uint256 amount;
+        uint256 aggAmount;
         uint256 shares;
     }
 

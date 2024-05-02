@@ -249,7 +249,7 @@ contract StakedAvailTest is StdUtils, Test {
         assertEq(avail.balanceOf(address(depository)), amount);
     }
 
-    function test_burn3(uint256 amount, uint248 burnAmtA, uint248 burnAmtB) external {
+    function test_burn3(uint128 amount, uint128 burnAmtA, uint128 burnAmtB) external {
         uint256 burnAmt1 = uint256(burnAmtA);
         uint256 burnAmt2 = uint256(burnAmtB);
         // the < is needed because it overflows our exchange rate calculation otherwise
@@ -267,15 +267,15 @@ contract StakedAvailTest is StdUtils, Test {
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
         assertEq(avail.balanceOf(address(depository)), amount);
         stakedAvail.burn(burnAmtA);
-        (uint256 shares, uint256 amt) = withdrawalHelper.getWithdrawal(1);
+        (uint256 amt, uint256 shares) = withdrawalHelper.getWithdrawal(1);
         assertEq(amt, burnAmt1);
         assertEq(shares, burnAmt1);
         assertEq(withdrawalHelper.ownerOf(1), from);
         assertEq(stakedAvail.balanceOf(from), amount - burnAmt1);
         assertEq(stakedAvail.balanceOf(address(stakedAvail)), burnAmt1);
         stakedAvail.burn(burnAmtB);
-        (shares, amt) = withdrawalHelper.getWithdrawal(2);
-        assertEq(amt, burnAmtB);
+        (amt, shares) = withdrawalHelper.getWithdrawal(2);
+        assertEq(amt, burnAmtA + burnAmtB);
         assertEq(shares, burnAmtB);
         assertEq(withdrawalHelper.ownerOf(2), from);
         assertEq(stakedAvail.balanceOf(from), amount - burnAmt1 - burnAmt2);

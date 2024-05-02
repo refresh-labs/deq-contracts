@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.25;
 
-import {IAvailBridge} from "src/interfaces/IAvailBridge.sol";
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {IAvailDepository} from "src/interfaces/IAvailDepository.sol";
 import {AccessControlDefaultAdminRulesUpgradeable} from
     "lib/openzeppelin-contracts-upgradeable/contracts/access/extensions/AccessControlDefaultAdminRulesUpgradeable.sol";
+import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+
+import {IAvailBridge} from "src/interfaces/IAvailBridge.sol";
+import {IAvailDepository} from "src/interfaces/IAvailDepository.sol";
 
 contract AvailDepository is AccessControlDefaultAdminRulesUpgradeable, IAvailDepository {
     using SafeERC20 for IERC20;

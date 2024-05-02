@@ -1,21 +1,24 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.25;
 
-import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {IERC20Permit} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {AccessControlDefaultAdminRulesUpgradeable} from
+    "lib/openzeppelin-contracts-upgradeable/contracts/access/extensions/AccessControlDefaultAdminRulesUpgradeable.sol";
 import {
     ERC20Upgradeable,
     ERC20PermitUpgradeable
 } from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
-import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol";
+import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {IERC20Permit} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
+import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SignedMath} from "lib/openzeppelin-contracts/contracts/utils/math/SignedMath.sol";
+
 import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
-import {AccessControlDefaultAdminRulesUpgradeable} from
-    "lib/openzeppelin-contracts-upgradeable/contracts/access/extensions/AccessControlDefaultAdminRulesUpgradeable.sol";
+import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol";
 
 contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUpgradeable, IStakedAvail {
     using Math for uint256;
+    using SignedMath for int256;
     using SafeERC20 for IERC20;
 
     bytes32 private constant UPDATER_ROLE = keccak256("UPDATER_ROLE");
@@ -58,7 +61,8 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         if (delta == 0) revert InvalidUpdate();
         uint256 _assets;
         if (delta < 0) {
-            _assets = assets - uint256(-delta);
+            _assets = assets - delta.abs();
+            if (_assets == 0) revert InvalidUpdate();
         } else {
             _assets = assets + uint256(delta);
         }
@@ -111,7 +115,7 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         // slither-disable-next-line events-maths
         assets += amount;
         _mint(msg.sender, shares);
-        IERC20Permit(address(avail)).permit(msg.sender, address(this), amount, deadline, v, r, s);
+        try IERC20Permit(address(avail)).permit(msg.sender, address(this), amount, deadline, v, r, s) {} catch {}
         avail.safeTransferFrom(msg.sender, depository, amount);
     }
 

@@ -140,7 +140,9 @@ contract AvailWithdrawalHelperTest is Test {
         assertEq(stakedAvail.assets(), 0);
     }
 
-    function test_burnTwice(uint248 amount, uint248 burnAmount) external {
+    function test_burnTwice(uint128 amount128, uint128 burnAmount128) external {
+        uint256 amount = uint256(amount128);
+        uint256 burnAmount = uint256(burnAmount128);
         vm.assume(
             amount > burnAmount && (amount - burnAmount) > withdrawalHelper.minWithdrawal()
                 && burnAmount > withdrawalHelper.minWithdrawal()
@@ -168,10 +170,36 @@ contract AvailWithdrawalHelperTest is Test {
         withdrawalHelper.burn(2);
         assertEq(withdrawalHelper.withdrawalAmount(), 0);
         assertEq(withdrawalHelper.lastFulfillment(), 2);
-        assertEq(withdrawalHelper.previewFulfill(1), 0);
+        assertEq(withdrawalHelper.previewFulfill(2), 0);
         assertEq(stakedAvail.balanceOf(from), 0);
         assertEq(stakedAvail.balanceOf(address(stakedAvail)), 0);
         assertEq(stakedAvail.totalSupply(), 0);
         assertEq(stakedAvail.assets(), 0);
+    }
+
+    function test_scenarioQueue1(uint128 amountA, uint64 burnA, uint64 burnB, uint64 burnC) external {
+        uint256 amount = uint256(amountA);
+        uint256 burn1 = uint256(burnA);
+        uint256 burn2 = uint256(burnB);
+        uint256 burn3 = uint256(burnC);
+        vm.assume(amount >= (burn1 + burn2 + burn3) && burn1 > withdrawalHelper.minWithdrawal() && burn2 > withdrawalHelper.minWithdrawal() && burn3 > withdrawalHelper.minWithdrawal());
+        address from = makeAddr("from");
+        avail.mint(from, amount);
+        vm.startPrank(from);
+        avail.approve(address(stakedAvail), amount);
+        stakedAvail.mint(amount);
+        stakedAvail.burn(burn1);
+        stakedAvail.burn(burn2);
+        stakedAvail.burn(burn3);
+        avail.mint(address(withdrawalHelper), burn1 + burn2);
+        vm.expectRevert(IAvailWithdrawalHelper.NotFulfilled.selector);
+        withdrawalHelper.burn(3);
+        withdrawalHelper.burn(2);
+        assertEq(withdrawalHelper.withdrawalAmount(), burn1 + burn3);
+        assertEq(withdrawalHelper.lastFulfillment(), 2);
+        assertEq(withdrawalHelper.previewFulfill(2), 0);
+        assertEq(avail.balanceOf(from), burn2);
+        vm.expectRevert(IAvailWithdrawalHelper.NotFulfilled.selector);
+        withdrawalHelper.burn(3);
     }
 }
