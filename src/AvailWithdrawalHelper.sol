@@ -67,7 +67,6 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
     /// @dev Reverts if till is less than or equal to lastFulfillment
     /// @param till Token ID to iterate till
     function previewFulfill(uint256 till) public view returns (uint256 amount) {
-        if (till <= lastFulfillment) revert InvalidFulfillment();
         return withdrawals[till].accAmount - withdrawals[lastFulfillment].accAmount;
     }
 
