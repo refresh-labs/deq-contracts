@@ -327,6 +327,15 @@ contract StakedAvailTest is StdUtils, Test {
         stakedAvail.updateAssets(0);
     }
 
+    function testRevertInvalidUpdateDelta_updateAssets(uint248 assets) external {
+        vm.assume(assets != 0);
+        vm.prank(owner);
+        stakedAvail.forceUpdateAssets(assets);
+        vm.prank(updater);
+        vm.expectRevert(IStakedAvail.InvalidUpdate.selector);
+        stakedAvail.updateAssets(-int256(int248(assets)));
+    }
+
     function test_updateAssets(uint248 assets, int240 delta) external {
         vm.assume(delta != 0 && assets != 0);
         vm.assume(uint256(assets) > uint256(int256(delta)));
