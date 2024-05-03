@@ -12,7 +12,7 @@ evm_version = "cancun"
 max_test_rejects = 9999999
 
 [profile.intense.fuzz]
-max_test_rejects = 9999999
+max_test_rejects = 99999999
 runs = 10000
 
 [rpc_endpoints]

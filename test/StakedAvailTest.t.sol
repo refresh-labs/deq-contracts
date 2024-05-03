@@ -5,6 +5,7 @@ import {StdUtils, Test} from "lib/forge-std/src/Test.sol";
 import {TransparentUpgradeableProxy} from
     "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IAccessControl} from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
+import {SignedMath} from "lib/openzeppelin-contracts/contracts/utils/math/SignedMath.sol";
 import {IERC20, IStakedAvail, StakedAvail} from "src/StakedAvail.sol";
 import {MockERC20} from "src/mocks/MockERC20.sol";
 import {AvailDepository} from "src/AvailDepository.sol";
@@ -15,6 +16,8 @@ import {SigUtils} from "./helpers/SigUtils.sol";
 import {console} from "lib/forge-std/src/console.sol";
 
 contract StakedAvailTest is StdUtils, Test {
+    using SignedMath for int256;
+
     StakedAvail public stakedAvail;
     MockERC20 public avail;
     AvailDepository public depository;
@@ -327,13 +330,13 @@ contract StakedAvailTest is StdUtils, Test {
         stakedAvail.updateAssets(0);
     }
 
-    function testRevertInvalidUpdateDelta_updateAssets(uint248 assets) external {
-        vm.assume(assets != 0);
+    function testRevertInvalidUpdateDelta_updateAssets(int256 assets) external {
+        vm.assume(assets < 0);
         vm.prank(owner);
-        stakedAvail.forceUpdateAssets(assets);
+        stakedAvail.forceUpdateAssets(assets.abs());
         vm.prank(updater);
         vm.expectRevert(IStakedAvail.InvalidUpdate.selector);
-        stakedAvail.updateAssets(-int256(int248(assets)));
+        stakedAvail.updateAssets(assets);
     }
 
     function test_updateAssets(uint248 assets, int240 delta) external {
