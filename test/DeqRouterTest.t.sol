@@ -32,13 +32,13 @@ contract DeqRouterTest is Test {
         swapRouter = makeAddr("swapRouter");
         address impl = address(new StakedAvail(avail));
         stakedAvail = StakedAvail(address(new TransparentUpgradeableProxy(impl, msg.sender, "")));
-        address depositoryImpl = address(new AvailDepository(avail));
+        address depositoryImpl = address(new AvailDepository(avail, bridge));
         depository = AvailDepository(address(new TransparentUpgradeableProxy(depositoryImpl, msg.sender, "")));
         address withdrawalHelperImpl = address(new AvailWithdrawalHelper(avail));
         withdrawalHelper =
             AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, msg.sender, "")));
         withdrawalHelper.initialize(msg.sender, stakedAvail, 1 ether);
-        depository.initialize(msg.sender, bridge, msg.sender, bytes32(abi.encode(1)));
+        depository.initialize(msg.sender, msg.sender, bytes32(abi.encode(1)));
         stakedAvail.initialize(msg.sender, msg.sender, address(depository), withdrawalHelper);
         deqRouter = new DeqRouter(swapRouter, avail, stakedAvail);
     }

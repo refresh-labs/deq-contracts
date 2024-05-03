@@ -21,7 +21,7 @@ contract DeployScript is Script {
         address governance = vm.envAddress("GOVERNANCE");
         address avail = vm.envAddress("AVAIL");
         bytes32 availDepository = vm.envBytes32("DEPOSITORY");
-        address depositoryImpl = address(new AvailDepository(IERC20(avail)));
+        address depositoryImpl = address(new AvailDepository(IERC20(avail), bridge));
         AvailDepository depository =
             AvailDepository(address(new TransparentUpgradeableProxy(depositoryImpl, governance, "")));
         address withdrawalHelperImpl = address(new AvailWithdrawalHelper(IERC20(avail)));
@@ -29,7 +29,7 @@ contract DeployScript is Script {
             AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, governance, "")));
         address stAVAILimpl = address(new StakedAvail(IERC20(avail)));
         StakedAvail stAVAIL = StakedAvail(address(new TransparentUpgradeableProxy(stAVAILimpl, governance, "")));
-        depository.initialize(governance, bridge, updater, availDepository);
+        depository.initialize(governance, updater, availDepository);
         withdrawalHelper.initialize(governance, stAVAIL, 1 ether);
         stAVAIL.initialize(governance, updater, address(depository), withdrawalHelper);
         vm.stopBroadcast();

@@ -34,45 +34,48 @@ contract AvailDepositoryTest is Test {
         bridge = IAvailBridge(address(new MockAvailBridge(avail)));
         address impl = address(new StakedAvail(avail));
         stakedAvail = StakedAvail(address(new TransparentUpgradeableProxy(impl, msg.sender, "")));
-        address depositoryImpl = address(new AvailDepository(avail));
+        address depositoryImpl = address(new AvailDepository(avail, bridge));
         depository = AvailDepository(address(new TransparentUpgradeableProxy(depositoryImpl, msg.sender, "")));
         address withdrawalHelperImpl = address(new AvailWithdrawalHelper(avail));
         withdrawalHelper =
             AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, msg.sender, "")));
         withdrawalHelper.initialize(msg.sender, stakedAvail, 1 ether);
-        depository.initialize(msg.sender, bridge, depositor, availDepositoryAddr);
+        depository.initialize(msg.sender, depositor, availDepositoryAddr);
         stakedAvail.initialize(msg.sender, msg.sender, address(depository), withdrawalHelper);
     }
 
-    function testRevert_constructor() external {
+    function testRevert_constructor(address rand) external {
         vm.expectRevert(IAvailDepository.ZeroAddress.selector);
-        new AvailDepository(IERC20(address(0)));
+        new AvailDepository(IERC20(address(0)), IAvailBridge(rand));
+        vm.expectRevert(IAvailDepository.ZeroAddress.selector);
+        new AvailDepository(IERC20(address(rand)), IAvailBridge(address(0)));
+        vm.expectRevert(IAvailDepository.ZeroAddress.selector);
+        new AvailDepository(IERC20(address(0)), IAvailBridge(address(0)));
     }
 
     function test_constructor(address rand) external {
         vm.assume(rand != address(0));
-        AvailDepository newDepository = new AvailDepository(IERC20(rand));
+        AvailDepository newDepository = new AvailDepository(IERC20(rand), IAvailBridge(address(rand)));
         assertEq(address(newDepository.avail()), rand);
     }
 
     function testRevert_Initialize(
         address rand,
         address newGovernance,
-        address newBridge,
         address newDepositor,
         bytes32 newAvailDepositoryAddr
     ) external {
         vm.assume(
             rand != address(0)
                 && (
-                    newGovernance == address(0) || newBridge == address(0) || newDepositor == address(0)
+                    newGovernance == address(0) || newDepositor == address(0)
                         || newAvailDepositoryAddr == bytes32(0)
                 )
         );
-        AvailDepository newDepository = new AvailDepository(IERC20(rand));
+        AvailDepository newDepository = new AvailDepository(IERC20(rand), IAvailBridge(rand));
         assertEq(address(newDepository.avail()), rand);
         vm.expectRevert(IAvailDepository.ZeroAddress.selector);
-        newDepository.initialize(newGovernance, IAvailBridge(newBridge), newDepositor, newAvailDepositoryAddr);
+        newDepository.initialize(newGovernance, newDepositor, newAvailDepositoryAddr);
     }
 
     function test_initialize() external view {
@@ -81,30 +84,6 @@ contract AvailDepositoryTest is Test {
         assertEq(depository.depository(), availDepositoryAddr);
         assertTrue(depository.hasRole(DEPOSITOR_ROLE, depositor));
         assertEq(depository.owner(), owner);
-    }
-
-    function testRevertOnlyRole_updateBridge(IAvailBridge newBridge) external {
-        vm.assume(address(newBridge) != address(0));
-        address from = makeAddr("from");
-        vm.assume(from != owner);
-        vm.prank(from);
-        vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0))
-        );
-        depository.updateBridge(newBridge);
-    }
-
-    function testRevertZeroAddress_updateBridge() external {
-        vm.prank(owner);
-        vm.expectRevert(IAvailDepository.ZeroAddress.selector);
-        depository.updateBridge(IAvailBridge(address(0)));
-    }
-
-    function test_updateBridge(IAvailBridge newBridge) external {
-        vm.assume(address(newBridge) != address(0));
-        vm.prank(owner);
-        depository.updateBridge(newBridge);
-        assertEq(address(depository.bridge()), address(newBridge));
     }
 
     function testRevertOnlyRole_updateDepository(bytes32 newDepository) external {

@@ -7,7 +7,6 @@ interface IAvailDepository {
     error OnlyDepositor();
     error ZeroAddress();
 
-    function updateBridge(IAvailBridge _bridge) external;
     function updateDepository(bytes32 _depository) external;
     function deposit() external;
 }
