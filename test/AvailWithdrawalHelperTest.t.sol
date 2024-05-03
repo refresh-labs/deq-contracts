@@ -182,7 +182,10 @@ contract AvailWithdrawalHelperTest is Test {
         uint256 burn1 = uint256(burnA);
         uint256 burn2 = uint256(burnB);
         uint256 burn3 = uint256(burnC);
-        vm.assume(amount >= (burn1 + burn2 + burn3) && burn1 > withdrawalHelper.minWithdrawal() && burn2 > withdrawalHelper.minWithdrawal() && burn3 > withdrawalHelper.minWithdrawal());
+        vm.assume(
+            amount >= (burn1 + burn2 + burn3) && burn1 > withdrawalHelper.minWithdrawal()
+                && burn2 > withdrawalHelper.minWithdrawal() && burn3 > withdrawalHelper.minWithdrawal()
+        );
         address from = makeAddr("from");
         avail.mint(from, amount);
         vm.startPrank(from);
@@ -217,7 +220,10 @@ contract AvailWithdrawalHelperTest is Test {
         uint256 burn1 = uint256(burnA);
         uint256 burn2 = uint256(burnB);
         uint256 burn3 = uint256(burnC);
-        vm.assume(amount >= (burn1 + burn2 + burn3) && burn1 > withdrawalHelper.minWithdrawal() && burn2 > withdrawalHelper.minWithdrawal() && burn3 > withdrawalHelper.minWithdrawal());
+        vm.assume(
+            amount >= (burn1 + burn2 + burn3) && burn1 > withdrawalHelper.minWithdrawal()
+                && burn2 > withdrawalHelper.minWithdrawal() && burn3 > withdrawalHelper.minWithdrawal()
+        );
         address from = makeAddr("from");
         avail.mint(from, amount);
         vm.startPrank(from);
@@ -240,7 +246,10 @@ contract AvailWithdrawalHelperTest is Test {
         uint256 burn1 = uint256(burnA);
         uint256 burn2 = uint256(burnB);
         uint256 burn3 = uint256(burnC);
-        vm.assume(amount >= (burn1 + burn2 + burn3) && burn1 > withdrawalHelper.minWithdrawal() && burn2 > withdrawalHelper.minWithdrawal() && burn3 > withdrawalHelper.minWithdrawal());
+        vm.assume(
+            amount >= (burn1 + burn2 + burn3) && burn1 > withdrawalHelper.minWithdrawal()
+                && burn2 > withdrawalHelper.minWithdrawal() && burn3 > withdrawalHelper.minWithdrawal()
+        );
         address from = makeAddr("from");
         avail.mint(from, amount);
         vm.startPrank(from);
@@ -260,7 +269,10 @@ contract AvailWithdrawalHelperTest is Test {
         uint256 burn1 = uint256(burnA);
         uint256 burn2 = uint256(burnB);
         uint256 burn3 = uint256(burnC);
-        vm.assume(amount >= (burn1 + burn2 + burn3) && burn1 > withdrawalHelper.minWithdrawal() && burn2 > withdrawalHelper.minWithdrawal() && burn3 > withdrawalHelper.minWithdrawal());
+        vm.assume(
+            amount >= (burn1 + burn2 + burn3) && burn1 > withdrawalHelper.minWithdrawal()
+                && burn2 > withdrawalHelper.minWithdrawal() && burn3 > withdrawalHelper.minWithdrawal()
+        );
         address from = makeAddr("from");
         avail.mint(from, amount);
         vm.startPrank(from);

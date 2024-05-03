@@ -58,7 +58,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
         }
         withdrawals[tokenId] = Withdrawal(withdrawals[tokenId - 1].accAmount + amount, shares);
         // slither-disable-next-line events-maths
-        withdrawalAmount += amount; 
+        withdrawalAmount += amount;
         _mint(account, tokenId);
     }
 
