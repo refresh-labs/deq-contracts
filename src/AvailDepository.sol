@@ -9,7 +9,6 @@ import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/
 import {IAvailBridge} from "src/interfaces/IAvailBridge.sol";
 import {IAvailDepository} from "src/interfaces/IAvailDepository.sol";
 
-
 /// @title AvailDepository
 /// @author Deq Protocol
 /// @notice Depository contract that receives Avail ERC20 and bridges assets to Avail
@@ -44,14 +43,8 @@ contract AvailDepository is AccessControlDefaultAdminRulesUpgradeable, IAvailDep
     /// @param governance Address of the governance role
     /// @param newDepositor Address of the depositor role
     /// @param newDepository Address of the depository on Avail
-    function initialize(address governance, address newDepositor, bytes32 newDepository)
-        external
-        initializer
-    {
-        if (
-            governance == address(0) || newDepositor == address(0)
-                || newDepository == bytes32(0)
-        ) {
+    function initialize(address governance, address newDepositor, bytes32 newDepository) external initializer {
+        if (governance == address(0) || newDepositor == address(0) || newDepository == bytes32(0)) {
             revert ZeroAddress();
         }
         depository = newDepository;

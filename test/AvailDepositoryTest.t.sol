@@ -67,10 +67,7 @@ contract AvailDepositoryTest is Test {
     ) external {
         vm.assume(
             rand != address(0)
-                && (
-                    newGovernance == address(0) || newDepositor == address(0)
-                        || newAvailDepositoryAddr == bytes32(0)
-                )
+                && (newGovernance == address(0) || newDepositor == address(0) || newAvailDepositoryAddr == bytes32(0))
         );
         AvailDepository newDepository = new AvailDepository(IERC20(rand), IAvailBridge(rand));
         assertEq(address(newDepository.avail()), rand);
