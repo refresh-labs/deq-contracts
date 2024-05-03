@@ -16,6 +16,9 @@ import {SignedMath} from "lib/openzeppelin-contracts/contracts/utils/math/Signed
 import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
 import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol";
 
+/// @title StakedAvail
+/// @author Deq Protocol
+/// @notice Contract for staking Avail ERC20 tokens and minting an equivalent LST
 contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUpgradeable, IStakedAvail {
     using Math for uint256;
     using SignedMath for int256;
@@ -32,11 +35,18 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
     /// @notice Amount of assets staked (in wei)
     uint256 public assets;
 
+    /// @notice Constructor for the StakedAvail contract
+    /// @param newAvail Address of the Avail ERC20 token
     constructor(IERC20 newAvail) {
         if (address(newAvail) == address(0)) revert ZeroAddress();
         avail = newAvail;
     }
 
+    /// @notice Initializes the StakedAvail contract with governance, updater, depository, and withdrawal helper
+    /// @param governance Address of the governance role
+    /// @param newUpdater Address of the updater role
+    /// @param newDepository Address of the depository contract
+    /// @param newWithdrawalHelper Minimum withdrawal amount required for an exit through protocol
     function initialize(
         address governance,
         address newUpdater,
@@ -57,6 +67,9 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         _grantRole(UPDATER_ROLE, newUpdater);
     }
 
+    /// @notice Allows updater role to update assets based on staking rewards
+    /// @dev Negative delta decreases assets, positive delta increases assets
+    /// @param delta Amount to update assets by
     function updateAssets(int256 delta) external onlyRole(UPDATER_ROLE) {
         if (delta == 0) revert InvalidUpdate();
         uint256 _assets;
@@ -71,6 +84,10 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         emit AssetsUpdated(_assets);
     }
 
+    /// @notice Allows withdrawal helper to update assets and supply based on withdrawals
+    /// @dev Decreases assets and supply based on amount and shares stored at time of exit
+    /// @param amount Amount of Avail withdrawn
+    /// @param shares Amount of staked Avail burned
     function updateAssetsFromWithdrawals(uint256 amount, uint256 shares) external {
         if (msg.sender != address(withdrawalHelper)) revert OnlyWithdrawalHelper();
         uint256 _assets = assets - amount;
@@ -80,6 +97,9 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         emit AssetsUpdated(_assets);
     }
 
+    /// @notice Allows governance to force update assets in case of incidents
+    /// @dev Reverts if newAssets is 0
+    /// @param newAssets New amount of assets
     function forceUpdateAssets(uint256 newAssets) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (newAssets == 0) revert InvalidUpdate();
         assets = newAssets;
@@ -87,6 +107,9 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         emit AssetsUpdated(newAssets);
     }
 
+    /// @notice Allows governance to update the depository address
+    /// @dev Reverts if newDepository is the zero address
+    /// @param newDepository Address of the new depository contract
     function updateDepository(address newDepository) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (newDepository == address(0)) revert ZeroAddress();
         depository = newDepository;
@@ -94,6 +117,9 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         emit DepositoryUpdated(newDepository);
     }
 
+    /// @notice Allows governance to update the withdrawal helper contract
+    /// @dev Reverts if newWithdrawalHelper is the zero address
+    /// @param newWithdrawalHelper Address of the new withdrawal helper contract
     function updateWithdrawalHelper(IAvailWithdrawalHelper newWithdrawalHelper) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (address(newWithdrawalHelper) == address(0)) revert ZeroAddress();
         withdrawalHelper = newWithdrawalHelper;
@@ -101,14 +127,25 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         emit WithdrawalHelperUpdated(address(newWithdrawalHelper));
     }
 
+    /// @notice Returns the amount of LST to mint based on the amount of Avail staked
+    /// @dev Rounds down to the nearest integer
     function previewMint(uint256 amount) public view returns (uint256 shares) {
         return amount.mulDiv(totalSupply() + 1, assets + 1, Math.Rounding.Floor);
     }
 
+    /// @notice Returns the amount of Avail to withdraw based on the amount of LST burned
+    /// @dev Rounds down to the nearest integer
     function previewBurn(uint256 shares) public view returns (uint256 amount) {
         return shares.mulDiv(assets + 1, totalSupply() + 1, Math.Rounding.Floor);
     }
 
+    /// @notice Mints LST based on the amount of Avail staked with permit
+    /// @dev Reverts if amount is 0
+    /// @param amount Amount of Avail to stake
+    /// @param deadline Deadline for the permit
+    /// @param v Signature v
+    /// @param r Signature r
+    /// @param s Signature s
     function mintWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
         if (amount == 0) revert ZeroAmount();
         uint256 shares = previewMint(amount);
@@ -119,6 +156,9 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         avail.safeTransferFrom(msg.sender, depository, amount);
     }
 
+    /// @notice Mints LST based on the amount of Avail staked
+    /// @dev Reverts if amount is 0
+    /// @param amount Amount of Avail to stake
     function mint(uint256 amount) external {
         if (amount == 0) revert ZeroAmount();
         uint256 shares = previewMint(amount);
@@ -128,6 +168,10 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         avail.safeTransferFrom(msg.sender, depository, amount);
     }
 
+    /// @notice Mints LST to a recipient address based on the amount of Avail staked
+    /// @dev Reverts if amount is 0
+    /// @param to Address of the recipient
+    /// @param amount Amount of Avail to stake
     function mintTo(address to, uint256 amount) external {
         if (amount == 0) revert ZeroAmount();
         uint256 shares = previewMint(amount);
@@ -137,6 +181,9 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         avail.safeTransferFrom(msg.sender, depository, amount);
     }
 
+    /// @notice Burns LST based on the amount of Avail withdrawn
+    /// @dev Reverts if shares is 0
+    /// @param shares Amount of LST to burn
     function burn(uint256 shares) external {
         if (shares == 0) revert ZeroAmount();
         uint256 amount = previewBurn(shares);

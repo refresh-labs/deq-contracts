@@ -8,13 +8,24 @@ import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/
 import {IDeqRouter} from "src/interfaces/IDeqRouter.sol";
 import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
 
+/// @title DeqRouter
+/// @author Deq Protocol
+/// @notice Router contract for swapping ERC20 tokens to staked Avail
+/// @dev The contract is immutable
 contract DeqRouter is IDeqRouter {
     using SafeERC20 for IERC20;
 
+    /// @notice Address of the 0x proxy swap router contract
     address public immutable swapRouter;
+    /// @notice Address of the Avail ERC20 token
     IERC20 public immutable avail;
+    /// @notice Address of the staked Avail contract
     IStakedAvail public immutable stAvail;
 
+    /// @notice Constructor for the DeqRouter contract
+    /// @param newSwapRouter Address of the 0x proxy swap router contract
+    /// @param newAvail Address of the Avail ERC20 token
+    /// @param newStAvail Address of the staked Avail contract
     constructor(address newSwapRouter, IERC20 newAvail, IStakedAvail newStAvail) {
         if (newSwapRouter == address(0) || address(newAvail) == address(0) || address(newStAvail) == address(0)) {
             revert ZeroAddress();
@@ -24,6 +35,9 @@ contract DeqRouter is IDeqRouter {
         stAvail = newStAvail;
     }
 
+    /// @notice Swaps an ERC20 token to staked Avail
+    /// @param allowanceTarget Address of the allowance target from 0x API
+    /// @param data Data for the swap from 0x API
     function swapERC20ToStAvail(address allowanceTarget, bytes calldata data) external {
         (IERC20 tokenIn, IERC20 tokenOut, uint256 inAmount, uint256 minOutAmount,) =
             abi.decode(data[4:], (IERC20, IERC20, uint256, uint256, Transformation[]));
@@ -40,6 +54,9 @@ contract DeqRouter is IDeqRouter {
         stAvail.mintTo(msg.sender, outAmount);
     }
 
+    /// @notice Swaps an ERC20 token to staked Avail with permit
+    /// @param allowanceTarget Address of the allowance target from 0x API
+    /// @param data Data for the swap from 0x API
     function swapERC20ToStAvailWithPermit(
         address allowanceTarget,
         bytes calldata data,
@@ -65,6 +82,8 @@ contract DeqRouter is IDeqRouter {
         stAvail.mintTo(msg.sender, outAmount);
     }
 
+    /// @notice Swaps ETH to staked Avail
+    /// @param data Data for the swap from 0x API
     function swapETHtoStAvail(bytes calldata data) external payable {
         (address tokenIn, IERC20 tokenOut, uint256 inAmount, uint256 minOutAmount,) =
             abi.decode(data[4:], (address, IERC20, uint256, uint256, Transformation[]));
