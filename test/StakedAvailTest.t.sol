@@ -275,7 +275,7 @@ contract StakedAvailTest is StdUtils, Test {
         assertEq(stakedAvail.balanceOf(address(stakedAvail)), burnAmt1);
         stakedAvail.burn(burnAmtB);
         (amt, shares) = withdrawalHelper.getWithdrawal(2);
-        assertEq(amt, burnAmtA + burnAmtB);
+        assertEq(amt, burnAmtB);
         assertEq(shares, burnAmtB);
         assertEq(withdrawalHelper.ownerOf(2), from);
         assertEq(stakedAvail.balanceOf(from), amount - burnAmt1 - burnAmt2);

@@ -24,6 +24,8 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
     uint256 public withdrawalAmount;
     uint256 public lastFulfillment;
     uint256 public minWithdrawal;
+    uint256 public remainingFulfillment;
+
     mapping(uint256 => Withdrawal) private withdrawals;
 
     constructor(IERC20 newAvail) {
@@ -44,7 +46,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
     }
 
     function previewFulfill(uint256 till) public view returns (uint256 amount) {
-        return withdrawals[till].aggAmount - withdrawals[lastFulfillment].aggAmount;
+        return withdrawals[till].accAmount - withdrawals[lastFulfillment].accAmount;
     }
 
     function mint(address account, uint256 amount, uint256 shares) external {
@@ -54,20 +56,20 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
         unchecked {
             tokenId = ++lastTokenId;
         }
-        withdrawals[tokenId] = Withdrawal(withdrawals[tokenId - 1].aggAmount + amount, shares);
+        withdrawals[tokenId] = Withdrawal(withdrawals[tokenId - 1].accAmount + amount, shares);
         // slither-disable-next-line events-maths
         withdrawalAmount += amount; 
         _mint(account, tokenId);
     }
 
     function burn(uint256 id) external {
+        uint256 prevWithdrawalAccAmt = withdrawals[id - 1].accAmount;
+        Withdrawal memory withdrawal = withdrawals[id];
+        uint256 amount = withdrawal.accAmount - prevWithdrawalAccAmt;
         if (lastFulfillment < id) {
             // increment lastFulfillment to id
-            _fulfill(id);
+            _fulfill(id, amount);
         }
-        uint256 prevWithdrawalAggAmt = withdrawals[id - 1].aggAmount;
-        Withdrawal memory withdrawal = withdrawals[id];
-        uint256 amount = withdrawal.aggAmount - prevWithdrawalAggAmt;
         address owner = ownerOf(id);
         withdrawalAmount -= amount;
         _burn(id);
@@ -77,13 +79,15 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
 
     function getWithdrawal(uint256 id) external view returns (uint256 amount, uint256 shares) {
         Withdrawal memory withdrawal = withdrawals[id];
-        return (withdrawal.aggAmount - withdrawals[id - 1].aggAmount, withdrawal.shares);
+        return (withdrawal.accAmount - withdrawals[id - 1].accAmount, withdrawal.shares);
     }
 
-    function _fulfill(uint256 till) private {
-        if (avail.balanceOf(address(this)) < previewFulfill(till)) {
+    function _fulfill(uint256 till, uint256 claimed) private {
+        uint256 fulfillmentRequired = previewFulfill(till) + remainingFulfillment;
+        if (avail.balanceOf(address(this)) < fulfillmentRequired) {
             revert NotFulfilled();
         }
         lastFulfillment = till;
+        remainingFulfillment = fulfillmentRequired - claimed;
     }
 }

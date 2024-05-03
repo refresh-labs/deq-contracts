@@ -6,14 +6,14 @@ import {IStakedAvail} from "./IStakedAvail.sol";
 
 interface IAvailWithdrawalHelper is IERC721 {
     struct Withdrawal {
-        uint256 aggAmount;
+        uint256 accAmount;
         uint256 shares;
     }
 
+    error InvalidFulfillment();
     error InvalidInput();
     error InvalidWithdrawalAmount();
     error NotFulfilled();
-    error OnlyFulfiller();
     error OnlyStakedAvail();
     error ZeroAddress();
 
