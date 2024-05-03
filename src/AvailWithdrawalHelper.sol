@@ -68,8 +68,9 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
         uint256 amount = withdrawal.accAmount - prevWithdrawalAccAmt;
         if (lastFulfillment < id) {
             // increment lastFulfillment to id
-            _fulfill(id, amount);
+            _fulfill(id);
         }
+        remainingFulfillment -= amount;
         address owner = ownerOf(id);
         withdrawalAmount -= amount;
         _burn(id);
@@ -82,12 +83,12 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
         return (withdrawal.accAmount - withdrawals[id - 1].accAmount, withdrawal.shares);
     }
 
-    function _fulfill(uint256 till, uint256 claimed) private {
+    function _fulfill(uint256 till) private {
         uint256 fulfillmentRequired = previewFulfill(till) + remainingFulfillment;
         if (avail.balanceOf(address(this)) < fulfillmentRequired) {
             revert NotFulfilled();
         }
         lastFulfillment = till;
-        remainingFulfillment = fulfillmentRequired - claimed;
+        remainingFulfillment = fulfillmentRequired;
     }
 }
