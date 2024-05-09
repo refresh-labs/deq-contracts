@@ -10,6 +10,7 @@ import {
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC20Permit} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
+import {PausableUpgradeable} from "lib/openzeppelin-contracts-upgradeable/contracts/utils/PausableUpgradeable.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SignedMath} from "lib/openzeppelin-contracts/contracts/utils/math/SignedMath.sol";
 
@@ -19,11 +20,12 @@ import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol"
 /// @title StakedAvail
 /// @author Deq Protocol
 /// @notice Contract for staking Avail ERC20 tokens and minting an equivalent LST
-contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUpgradeable, IStakedAvail {
+contract StakedAvail is PausableUpgradeable, ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUpgradeable, IStakedAvail {
     using Math for uint256;
     using SignedMath for int256;
     using SafeERC20 for IERC20;
 
+    bytes32 private constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 private constant UPDATER_ROLE = keccak256("UPDATER_ROLE");
 
     /// @notice Address of Avail ERC20 token
@@ -44,17 +46,18 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
 
     /// @notice Initializes the StakedAvail contract with governance, updater, depository, and withdrawal helper
     /// @param governance Address of the governance role
-    /// @param newUpdater Address of the updater role
+    /// @param updater Address of the updater role
     /// @param newDepository Address of the depository contract
     /// @param newWithdrawalHelper Minimum withdrawal amount required for an exit through protocol
     function initialize(
         address governance,
-        address newUpdater,
+        address pauser,
+        address updater,
         address newDepository,
         IAvailWithdrawalHelper newWithdrawalHelper
     ) external initializer {
         if (
-            governance == address(0) || newUpdater == address(0) || newDepository == address(0)
+            governance == address(0) || updater == address(0) || newDepository == address(0)
                 || address(newWithdrawalHelper) == address(0)
         ) {
             revert ZeroAddress();
@@ -64,7 +67,20 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
         __ERC20_init("Staked Avail", "stAVAIL");
         __ERC20Permit_init("Staked Avail");
         __AccessControlDefaultAdminRules_init(0, governance);
-        _grantRole(UPDATER_ROLE, newUpdater);
+        _grantRole(PAUSER_ROLE, pauser);
+        _grantRole(UPDATER_ROLE, updater);
+    }
+
+    /**
+     * @notice  Updates pause status of the token
+     * @param   status  New pause status
+     */
+    function setPaused(bool status) external onlyRole(PAUSER_ROLE) {
+        if (status) {
+            _pause();
+        } else {
+            _unpause();
+        }
     }
 
     /// @notice Allows updater role to update assets based on staking rewards
@@ -146,7 +162,7 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
     /// @param v Signature v
     /// @param r Signature r
     /// @param s Signature s
-    function mintWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
+    function mintWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external whenNotPaused {
         if (amount == 0) revert ZeroAmount();
         uint256 shares = previewMint(amount);
         // slither-disable-next-line events-maths
@@ -159,7 +175,7 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
     /// @notice Mints LST based on the amount of Avail staked
     /// @dev Reverts if amount is 0
     /// @param amount Amount of Avail to stake
-    function mint(uint256 amount) external {
+    function mint(uint256 amount) external whenNotPaused {
         if (amount == 0) revert ZeroAmount();
         uint256 shares = previewMint(amount);
         // slither-disable-next-line events-maths
@@ -172,7 +188,7 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
     /// @dev Reverts if amount is 0
     /// @param to Address of the recipient
     /// @param amount Amount of Avail to stake
-    function mintTo(address to, uint256 amount) external {
+    function mintTo(address to, uint256 amount) external whenNotPaused {
         if (amount == 0) revert ZeroAmount();
         uint256 shares = previewMint(amount);
         // slither-disable-next-line events-maths
@@ -184,7 +200,7 @@ contract StakedAvail is ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUp
     /// @notice Burns LST based on the amount of Avail withdrawn
     /// @dev Reverts if shares is 0
     /// @param shares Amount of LST to burn
-    function burn(uint256 shares) external {
+    function burn(uint256 shares) external whenNotPaused {
         if (shares == 0) revert ZeroAmount();
         uint256 amount = previewBurn(shares);
         _transfer(msg.sender, address(this), shares);

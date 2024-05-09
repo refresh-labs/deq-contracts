@@ -25,13 +25,16 @@ contract StakedAvailTest is StdUtils, Test {
     AvailWithdrawalHelper public withdrawalHelper;
     address owner;
     address updater;
+    address pauser;
     SigUtils sigUtils;
 
+    bytes32 constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 constant UPDATER_ROLE = keccak256("UPDATER_ROLE");
 
     function setUp() external {
         owner = msg.sender;
         updater = makeAddr("updater");
+        pauser = makeAddr("pauser");
         avail = new MockERC20("Avail", "AVAIL");
         bridge = IAvailBridge(address(new MockAvailBridge(avail)));
         address impl = address(new StakedAvail(avail));
@@ -41,9 +44,9 @@ contract StakedAvailTest is StdUtils, Test {
         address withdrawalHelperImpl = address(new AvailWithdrawalHelper(avail));
         withdrawalHelper =
             AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, msg.sender, "")));
-        withdrawalHelper.initialize(msg.sender, stakedAvail, 1 ether);
-        depository.initialize(msg.sender, msg.sender, bytes32(abi.encode(1)));
-        stakedAvail.initialize(msg.sender, updater, address(depository), withdrawalHelper);
+        withdrawalHelper.initialize(msg.sender, pauser, stakedAvail, 1 ether);
+        depository.initialize(msg.sender, pauser, msg.sender, bytes32(abi.encode(1)));
+        stakedAvail.initialize(msg.sender, pauser, updater, address(depository), withdrawalHelper);
     }
 
     function testRevertZeroAddress_constructor() external {
@@ -60,6 +63,7 @@ contract StakedAvailTest is StdUtils, Test {
     function testRevertZeroAddress_initialize(
         address rand,
         address newOwner,
+        address newPauser,
         address newUpdater,
         address newDepository,
         address newWithdrawalHelper
@@ -67,14 +71,14 @@ contract StakedAvailTest is StdUtils, Test {
         vm.assume(
             rand != address(0)
                 && (
-                    newOwner == address(0) || newUpdater == address(0) || newDepository == address(0)
+                    newOwner == address(0) || newPauser == address(0) || newUpdater == address(0) || newDepository == address(0)
                         || newWithdrawalHelper == address(0)
                 )
         );
         StakedAvail newStakedAvail = new StakedAvail(IERC20(rand));
         assertEq(address(newStakedAvail.avail()), rand);
         vm.expectRevert(IStakedAvail.ZeroAddress.selector);
-        newStakedAvail.initialize(newOwner, newUpdater, newDepository, IAvailWithdrawalHelper(newWithdrawalHelper));
+        newStakedAvail.initialize(newOwner, newPauser, newUpdater, newDepository, IAvailWithdrawalHelper(newWithdrawalHelper));
     }
 
     function test_initialize() external view {

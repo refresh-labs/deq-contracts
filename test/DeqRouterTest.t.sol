@@ -21,12 +21,14 @@ contract DeqRouterTest is Test {
     IAvailBridge public bridge;
     AvailWithdrawalHelper public withdrawalHelper;
     address public owner;
+    address public pauser;
     address public swapRouter;
     DeqRouter public deqRouter;
     SigUtils public sigUtils;
 
     function setUp() external {
         owner = msg.sender;
+        pauser = makeAddr("pauser");
         avail = new MockERC20("Avail", "AVAIL");
         bridge = IAvailBridge(address(new MockAvailBridge(avail)));
         swapRouter = makeAddr("swapRouter");
@@ -37,10 +39,12 @@ contract DeqRouterTest is Test {
         address withdrawalHelperImpl = address(new AvailWithdrawalHelper(avail));
         withdrawalHelper =
             AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, msg.sender, "")));
-        withdrawalHelper.initialize(msg.sender, stakedAvail, 1 ether);
-        depository.initialize(msg.sender, msg.sender, bytes32(abi.encode(1)));
-        stakedAvail.initialize(msg.sender, msg.sender, address(depository), withdrawalHelper);
-        deqRouter = new DeqRouter(swapRouter, avail, stakedAvail);
+        withdrawalHelper.initialize(msg.sender, pauser, stakedAvail, 1 ether);
+        depository.initialize(msg.sender, pauser, msg.sender, bytes32(abi.encode(1)));
+        stakedAvail.initialize(msg.sender, pauser, msg.sender, address(depository), withdrawalHelper);
+        address routerImpl = address(new DeqRouter(avail));
+        deqRouter = DeqRouter(address(new TransparentUpgradeableProxy(routerImpl, msg.sender, "")));
+        deqRouter.initialize(msg.sender, pauser, swapRouter, stakedAvail);
     }
 
     function test_constructor() external view {
@@ -49,10 +53,9 @@ contract DeqRouterTest is Test {
         assertEq(address(deqRouter.stAvail()), address(stakedAvail));
     }
 
-    function testRevert_constructor(address newSwapRouter, address newAvail, address newStakedAvail) external {
-        vm.assume(newSwapRouter == address(0) || newAvail == address(0) || newStakedAvail == address(0));
+    function testRevert_constructor() external {
         vm.expectRevert(IDeqRouter.ZeroAddress.selector);
-        new DeqRouter(address(0), IERC20(address(0)), IStakedAvail(address(0)));
+        new DeqRouter(IERC20(address(0)));
     }
 
     function testRevertInvalidOutputToken_swapERC20ToStAvail(

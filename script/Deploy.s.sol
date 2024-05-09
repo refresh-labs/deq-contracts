@@ -3,7 +3,6 @@ pragma solidity ^0.8.25;
 
 import {TransparentUpgradeableProxy} from
     "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {ProxyAdmin} from "lib/openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
 import {IAvailBridge} from "src/interfaces/IAvailBridge.sol";
 import {IERC20, StakedAvail} from "src/StakedAvail.sol";
 import {DeqRouter} from "src/DeqRouter.sol";
@@ -19,6 +18,7 @@ contract DeployScript is Script {
         IAvailBridge bridge = IAvailBridge(vm.envAddress("BRIDGE"));
         address updater = vm.envAddress("UPDATER");
         address governance = vm.envAddress("GOVERNANCE");
+        address pauser = vm.envAddress("PAUSER");
         address avail = vm.envAddress("AVAIL");
         bytes32 availDepository = vm.envBytes32("DEPOSITORY");
         address depositoryImpl = address(new AvailDepository(IERC20(avail), bridge));
@@ -29,9 +29,9 @@ contract DeployScript is Script {
             AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, governance, "")));
         address stAVAILimpl = address(new StakedAvail(IERC20(avail)));
         StakedAvail stAVAIL = StakedAvail(address(new TransparentUpgradeableProxy(stAVAILimpl, governance, "")));
-        depository.initialize(governance, updater, availDepository);
-        withdrawalHelper.initialize(governance, stAVAIL, 1 ether);
-        stAVAIL.initialize(governance, updater, address(depository), withdrawalHelper);
+        depository.initialize(governance, pauser, updater, availDepository);
+        withdrawalHelper.initialize(governance, pauser, stAVAIL, 1 ether);
+        stAVAIL.initialize(governance, pauser, updater, address(depository), withdrawalHelper);
         vm.stopBroadcast();
         console.log("  ############################################################  ");
         console.log("Deployed AvailDepository at:", address(depository));

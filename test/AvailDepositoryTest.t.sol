@@ -21,6 +21,7 @@ contract AvailDepositoryTest is Test {
     IAvailBridge public bridge;
     AvailWithdrawalHelper public withdrawalHelper;
     address owner;
+    address pauser;
     address depositor;
     bytes32 availDepositoryAddr;
 
@@ -28,6 +29,7 @@ contract AvailDepositoryTest is Test {
 
     function setUp() external {
         owner = msg.sender;
+        pauser = makeAddr("pauser");
         avail = new MockERC20("Avail", "AVAIL");
         depositor = makeAddr("depositor");
         availDepositoryAddr = bytes32(bytes20(makeAddr("availDepository")));
@@ -39,9 +41,9 @@ contract AvailDepositoryTest is Test {
         address withdrawalHelperImpl = address(new AvailWithdrawalHelper(avail));
         withdrawalHelper =
             AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, msg.sender, "")));
-        withdrawalHelper.initialize(msg.sender, stakedAvail, 1 ether);
-        depository.initialize(msg.sender, depositor, availDepositoryAddr);
-        stakedAvail.initialize(msg.sender, msg.sender, address(depository), withdrawalHelper);
+        withdrawalHelper.initialize(msg.sender, pauser, stakedAvail, 1 ether);
+        depository.initialize(msg.sender, pauser, depositor, availDepositoryAddr);
+        stakedAvail.initialize(msg.sender, pauser, msg.sender, address(depository), withdrawalHelper);
     }
 
     function testRevert_constructor(address rand) external {
@@ -62,17 +64,18 @@ contract AvailDepositoryTest is Test {
     function testRevert_Initialize(
         address rand,
         address newGovernance,
+        address newPauser,
         address newDepositor,
         bytes32 newAvailDepositoryAddr
     ) external {
         vm.assume(
             rand != address(0)
-                && (newGovernance == address(0) || newDepositor == address(0) || newAvailDepositoryAddr == bytes32(0))
+                && (newGovernance == address(0) || newPauser == address(0) || newDepositor == address(0) || newAvailDepositoryAddr == bytes32(0))
         );
         AvailDepository newDepository = new AvailDepository(IERC20(rand), IAvailBridge(rand));
         assertEq(address(newDepository.avail()), rand);
         vm.expectRevert(IAvailDepository.ZeroAddress.selector);
-        newDepository.initialize(newGovernance, newDepositor, newAvailDepositoryAddr);
+        newDepository.initialize(newGovernance, newPauser, newDepositor, newAvailDepositoryAddr);
     }
 
     function test_initialize() external view {

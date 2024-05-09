@@ -19,9 +19,11 @@ contract AvailWithdrawalHelperTest is Test {
     IAvailBridge public bridge;
     AvailWithdrawalHelper public withdrawalHelper;
     address owner;
+    address pauser;
 
     function setUp() external {
         owner = msg.sender;
+        pauser = makeAddr("pauser");
         avail = new MockERC20("Avail", "AVAIL");
         bridge = IAvailBridge(address(new MockAvailBridge(avail)));
         address impl = address(new StakedAvail(avail));
@@ -31,9 +33,9 @@ contract AvailWithdrawalHelperTest is Test {
         address withdrawalHelperImpl = address(new AvailWithdrawalHelper(avail));
         withdrawalHelper =
             AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(withdrawalHelperImpl, msg.sender, "")));
-        withdrawalHelper.initialize(msg.sender, stakedAvail, 1 ether);
-        depository.initialize(msg.sender, msg.sender, bytes32(abi.encode(1)));
-        stakedAvail.initialize(msg.sender, msg.sender, address(depository), withdrawalHelper);
+        withdrawalHelper.initialize(msg.sender, pauser, stakedAvail, 1 ether);
+        depository.initialize(msg.sender, pauser, msg.sender, bytes32(abi.encode(1)));
+        stakedAvail.initialize(msg.sender, pauser, msg.sender, address(depository), withdrawalHelper);
     }
 
     function testRevert_constructor() external {
@@ -47,15 +49,15 @@ contract AvailWithdrawalHelperTest is Test {
         assertEq(address(newWithdrawalHelper.avail()), rand);
     }
 
-    function testRevert_initialize(address rand, address newGovernance, address newStakedAvail, uint256 amount)
+    function testRevert_initialize(address rand, address newGovernance, address newPauser, address newStakedAvail, uint256 amount)
         external
     {
         vm.assume(rand != address(0));
         AvailWithdrawalHelper newWithdrawalHelper = new AvailWithdrawalHelper(IERC20(rand));
         assertEq(address(newWithdrawalHelper.avail()), rand);
-        vm.assume(newGovernance == address(0) || newStakedAvail == address(0));
+        vm.assume(newGovernance == address(0) || newPauser == address(0) || newStakedAvail == address(0));
         vm.expectRevert(IAvailWithdrawalHelper.ZeroAddress.selector);
-        newWithdrawalHelper.initialize(newGovernance, IStakedAvail(newStakedAvail), amount);
+        newWithdrawalHelper.initialize(newGovernance, newPauser, IStakedAvail(newStakedAvail), amount);
     }
 
     function test_initialize() external view {

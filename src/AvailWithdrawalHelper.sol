@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.25;
 
+import {AccessControlDefaultAdminRulesUpgradeable} from
+    "lib/openzeppelin-contracts-upgradeable/contracts/access/extensions/AccessControlDefaultAdminRulesUpgradeable.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {
     IERC165,
@@ -8,6 +10,7 @@ import {
     IERC721Metadata,
     ERC721Upgradeable
 } from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC721/ERC721Upgradeable.sol";
+import {PausableUpgradeable} from "lib/openzeppelin-contracts-upgradeable/contracts/utils/PausableUpgradeable.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable2StepUpgradeable} from
     "lib/openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
@@ -19,8 +22,10 @@ import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
 /// @author Deq Protocol
 /// @notice Contract that facilitates withdrawals from Staked Avail
 /// @dev Uses the ERC721 standard to maintain withdrawal records
-contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IAvailWithdrawalHelper {
+contract AvailWithdrawalHelper is PausableUpgradeable, AccessControlDefaultAdminRulesUpgradeable, ERC721Upgradeable, IAvailWithdrawalHelper {
     using SafeERC20 for IERC20;
+
+    bytes32 private constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     /// @notice Address of the Avail ERC20 token
     IERC20 public immutable avail;
@@ -48,18 +53,31 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
     /// @param governance Address of the governance role
     /// @param newStAvail Address of the Staked Avail contract
     /// @param newMinWithdrawal Minimum withdrawal amount
-    function initialize(address governance, IStakedAvail newStAvail, uint256 newMinWithdrawal) external initializer {
-        if (governance == address(0) || address(newStAvail) == address(0)) revert ZeroAddress();
+    function initialize(address governance, address pauser, IStakedAvail newStAvail, uint256 newMinWithdrawal) external initializer {
+        if (governance == address(0) || pauser == address(0) || address(newStAvail) == address(0)) revert ZeroAddress();
         stAvail = newStAvail;
         minWithdrawal = newMinWithdrawal;
         __ERC721_init("Exited Staked Avail", "exStAvail");
-        _transferOwnership(governance);
+        __AccessControlDefaultAdminRules_init(0, governance);
+        _grantRole(PAUSER_ROLE, pauser);
+    }
+
+    /**
+     * @notice  Updates pause status of the helper contract
+     * @param   status  New pause status
+     */
+    function setPaused(bool status) external onlyRole(PAUSER_ROLE) {
+        if (status) {
+            _pause();
+        } else {
+            _unpause();
+        }
     }
 
     /// @notice Returns true if an EIP165 interfaceId is supported
     /// @param interfaceId An EIP165 interfaceId
     /// @return bool True if the interfaceId is supported, false if not
-    function supportsInterface(bytes4 interfaceId) public view override(IERC165, ERC721Upgradeable) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view override(IERC165, ERC721Upgradeable, AccessControlDefaultAdminRulesUpgradeable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 
@@ -75,7 +93,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
     /// @param account Address of the account to mint the withdrawal receipt to
     /// @param amount Amount of Avail to transfer at receipt burn
     /// @param shares Amount of staked Avail to burn at receipt burn
-    function mint(address account, uint256 amount, uint256 shares) external {
+    function mint(address account, uint256 amount, uint256 shares) external whenNotPaused {
         if (msg.sender != address(stAvail)) revert OnlyStakedAvail();
         if (amount < minWithdrawal) revert InvalidWithdrawalAmount();
         uint256 tokenId;
@@ -90,7 +108,7 @@ contract AvailWithdrawalHelper is ERC721Upgradeable, Ownable2StepUpgradeable, IA
 
     /// @notice Burns a withdrawal receipt and transfers Avail to the owner
     /// @param id Token ID of the withdrawal receipt to burn
-    function burn(uint256 id) external {
+    function burn(uint256 id) external whenNotPaused {
         uint256 prevWithdrawalAccAmt = withdrawals[id - 1].accAmount;
         Withdrawal memory withdrawal = withdrawals[id];
         uint256 amount = withdrawal.accAmount - prevWithdrawalAccAmt;
