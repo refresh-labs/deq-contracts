@@ -93,7 +93,7 @@ contract StakedAvail is
     /// @notice Allows updater role to update assets based on staking rewards
     /// @dev Negative delta decreases assets, positive delta increases assets
     /// @param delta Amount to update assets by
-    function updateAssets(int256 delta) external onlyRole(UPDATER_ROLE) {
+    function updateAssets(int256 delta) external whenNotPaused onlyRole(UPDATER_ROLE) {
         if (delta == 0) revert InvalidUpdate();
         uint256 _assets;
         if (delta < 0) {
@@ -111,7 +111,7 @@ contract StakedAvail is
     /// @dev Decreases assets and supply based on amount and shares stored at time of exit
     /// @param amount Amount of Avail withdrawn
     /// @param shares Amount of staked Avail burned
-    function updateAssetsFromWithdrawals(uint256 amount, uint256 shares) external {
+    function updateAssetsFromWithdrawals(uint256 amount, uint256 shares) external whenNotPaused {
         if (msg.sender != address(withdrawalHelper)) revert OnlyWithdrawalHelper();
         uint256 _assets = assets - amount;
         assets = _assets;
