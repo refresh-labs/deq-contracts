@@ -4,6 +4,7 @@ pragma solidity 0.8.25;
 import {Test} from "lib/forge-std/src/Test.sol";
 import {TransparentUpgradeableProxy} from
     "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {IAccessControl} from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 import {IERC20, IStakedAvail, StakedAvail} from "src/StakedAvail.sol";
 import {MockERC20} from "src/mocks/MockERC20.sol";
 import {AvailDepository} from "src/AvailDepository.sol";
@@ -26,6 +27,8 @@ contract DeqRouterTest is Test {
     DeqRouter public deqRouter;
     SigUtils public sigUtils;
 
+    bytes32 private constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
     function setUp() external {
         owner = msg.sender;
         pauser = makeAddr("pauser");
@@ -47,15 +50,48 @@ contract DeqRouterTest is Test {
         deqRouter.initialize(msg.sender, pauser, swapRouter, stakedAvail);
     }
 
-    function test_constructor() external view {
-        assertEq(address(deqRouter.swapRouter()), swapRouter);
-        assertEq(address(deqRouter.avail()), address(avail));
-        assertEq(address(deqRouter.stAvail()), address(stakedAvail));
-    }
-
     function testRevert_constructor() external {
         vm.expectRevert(IDeqRouter.ZeroAddress.selector);
         new DeqRouter(IERC20(address(0)));
+    }
+
+    function test_constructor(address newAvail) external {
+        vm.assume(newAvail != address(0));
+        DeqRouter newDeqRouter = new DeqRouter(IERC20(newAvail));
+        assertEq(address(newDeqRouter.avail()), address(newAvail));
+    }
+
+    function testRevertZeroAddress_initialize(address newAvail, address newGovernance, address newPauser, address newSwapRouter, address newStakedAvail) external {
+        vm.assume(newAvail != address(0));
+        DeqRouter newDeqRouter = new DeqRouter(IERC20(newAvail));
+        vm.assume(newGovernance == address(0) || newPauser == address(0) || newSwapRouter == address(0) || newStakedAvail == address(0));
+        vm.expectRevert(IDeqRouter.ZeroAddress.selector);
+        newDeqRouter.initialize(newGovernance, newPauser, newSwapRouter, IStakedAvail(newStakedAvail));
+    }
+
+    function test_initialize() external view {
+        assertEq(deqRouter.owner(), owner);
+        assertTrue(deqRouter.hasRole(PAUSER_ROLE, pauser));
+        assertEq(deqRouter.swapRouter(), swapRouter);
+        assertEq(address(deqRouter.stAvail()), address(stakedAvail));
+    }
+
+    function testRevertOnlyPauser_setPaused(bool status) external {
+        address from = makeAddr("from");
+        vm.assume(from != pauser);
+        vm.expectRevert(
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, PAUSER_ROLE)
+        );
+        vm.prank(from);
+        deqRouter.setPaused(status);
+    }
+
+    function test_setPaused() external {
+        vm.startPrank(pauser);
+        deqRouter.setPaused(true);
+        assertTrue(deqRouter.paused());
+        deqRouter.setPaused(false);
+        assertFalse(deqRouter.paused());
     }
 
     function testRevertInvalidOutputToken_swapERC20ToStAvail(

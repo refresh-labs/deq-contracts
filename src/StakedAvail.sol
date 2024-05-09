@@ -62,7 +62,7 @@ contract StakedAvail is
         IAvailWithdrawalHelper newWithdrawalHelper
     ) external initializer {
         if (
-            governance == address(0) || updater == address(0) || newDepository == address(0)
+            governance == address(0) || pauser == address(0) || updater == address(0) || newDepository == address(0)
                 || address(newWithdrawalHelper) == address(0)
         ) {
             revert ZeroAddress();
