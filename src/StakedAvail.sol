@@ -20,6 +20,7 @@ import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol"
 /// @title StakedAvail
 /// @author Deq Protocol
 /// @notice Contract for staking Avail ERC20 tokens and minting an equivalent LST
+/// @dev The contract is upgradeable and uses AccessControlDefaultAdminRulesUpgradeable
 contract StakedAvail is
     PausableUpgradeable,
     ERC20PermitUpgradeable,
@@ -51,6 +52,7 @@ contract StakedAvail is
 
     /// @notice Initializes the StakedAvail contract with governance, updater, depository, and withdrawal helper
     /// @param governance Address of the governance role
+    /// @param pauser Address of the pauser role
     /// @param updater Address of the updater role
     /// @param newDepository Address of the depository contract
     /// @param newWithdrawalHelper Minimum withdrawal amount required for an exit through protocol

@@ -4,6 +4,7 @@ pragma solidity 0.8.25;
 import {Test} from "lib/forge-std/src/Test.sol";
 import {TransparentUpgradeableProxy} from
     "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {Pausable} from "lib/openzeppelin-contracts/contracts/utils/Pausable.sol";
 import {IERC20, IStakedAvail, StakedAvail} from "src/StakedAvail.sol";
 import {MockERC20} from "src/mocks/MockERC20.sol";
 import {AvailDepository} from "src/AvailDepository.sol";
@@ -73,6 +74,18 @@ contract AvailWithdrawalHelperTest is Test {
         assertEq(withdrawalHelper.owner(), owner);
         assertEq(withdrawalHelper.minWithdrawal(), 1 ether);
         assertTrue(withdrawalHelper.supportsInterface(0x01ffc9a7));
+    }
+
+    function test_setPaused() external {
+        vm.startPrank(pauser);
+        withdrawalHelper.setPaused(true);
+        assertTrue(withdrawalHelper.paused());
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        withdrawalHelper.mint(address(0), 1, 1);
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        withdrawalHelper.burn(1);
+        withdrawalHelper.setPaused(false);
+        assertFalse(withdrawalHelper.paused());
     }
 
     function testRevertOnlyStakedAvail_mint(address account, uint256 amount, uint256 shares) external {

@@ -82,7 +82,7 @@ contract AvailDepository is PausableUpgradeable, AccessControlDefaultAdminRulesU
 
     /// @notice Deposits Avail ERC20 to the depository on Avail
     /// @dev Reverts if the sender is not the depositor
-    function deposit() external onlyRole(DEPOSITOR_ROLE) whenNotPaused {
+    function deposit() external whenNotPaused onlyRole(DEPOSITOR_ROLE) {
         uint256 amount = avail.balanceOf(address(this));
         // keep 1 wei so slot stays warm, intentionally leave return unused, since OZ impl does not return false
         // slither-disable-next-line unused-return

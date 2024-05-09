@@ -5,6 +5,7 @@ import {Test} from "lib/forge-std/src/Test.sol";
 import {ProxyAdmin} from "lib/openzeppelin-contracts/contracts/proxy/transparent/ProxyAdmin.sol";
 import {TransparentUpgradeableProxy} from
     "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {Pausable} from "lib/openzeppelin-contracts/contracts/utils/Pausable.sol";
 import {IERC20, StakedAvail} from "src/StakedAvail.sol";
 import {MockERC20} from "src/mocks/MockERC20.sol";
 import {IAccessControl} from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
@@ -87,6 +88,16 @@ contract AvailDepositoryTest is Test {
         assertEq(depository.depository(), availDepositoryAddr);
         assertTrue(depository.hasRole(DEPOSITOR_ROLE, depositor));
         assertEq(depository.owner(), owner);
+    }
+
+    function test_setPaused() external {
+        vm.startPrank(pauser);
+        depository.setPaused(true);
+        assertTrue(depository.paused());
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        depository.deposit();
+        depository.setPaused(false);
+        assertFalse(depository.paused());
     }
 
     function testRevertOnlyRole_updateDepository(bytes32 newDepository) external {

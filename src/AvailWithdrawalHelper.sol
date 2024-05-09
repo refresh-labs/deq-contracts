@@ -49,6 +49,9 @@ contract AvailWithdrawalHelper is
 
     mapping(uint256 => Withdrawal) private withdrawals;
 
+    /// @notice Constructor for the AvailWithdrawalHelper contract
+    /// @param newAvail Address of the Avail ERC20 token
+    /// @dev Reverts if the Avail token address is the zero address
     constructor(IERC20 newAvail) {
         if (address(newAvail) == address(0)) revert ZeroAddress();
         avail = newAvail;
@@ -56,6 +59,7 @@ contract AvailWithdrawalHelper is
 
     /// @notice Initializes the AvailWithdrawalHelper contract with governance, Avail, Staked Avail, and minimum withdrawal
     /// @param governance Address of the governance role
+    /// @param pauser Address of the pauser role
     /// @param newStAvail Address of the Staked Avail contract
     /// @param newMinWithdrawal Minimum withdrawal amount
     function initialize(address governance, address pauser, IStakedAvail newStAvail, uint256 newMinWithdrawal)

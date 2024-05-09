@@ -13,8 +13,8 @@ import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
 
 /// @title DeqRouter
 /// @author Deq Protocol
-/// @notice Router contract for swapping ERC20 tokens to staked Avail
-/// @dev The contract is immutable
+/// @notice Router contract for swapping ERC20 tokens to Avail and minting staked Avail
+/// @dev The contract is upgradeable and uses AccessControlDefaultAdminRulesUpgradeable
 contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgradeable, IDeqRouter {
     using SafeERC20 for IERC20;
 

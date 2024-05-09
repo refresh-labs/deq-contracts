@@ -5,6 +5,7 @@ import {Test} from "lib/forge-std/src/Test.sol";
 import {TransparentUpgradeableProxy} from
     "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IAccessControl} from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
+import {Pausable} from "lib/openzeppelin-contracts/contracts/utils/Pausable.sol";
 import {IERC20, IStakedAvail, StakedAvail} from "src/StakedAvail.sol";
 import {MockERC20} from "src/mocks/MockERC20.sol";
 import {AvailDepository} from "src/AvailDepository.sol";
@@ -99,8 +100,41 @@ contract DeqRouterTest is Test {
         vm.startPrank(pauser);
         deqRouter.setPaused(true);
         assertTrue(deqRouter.paused());
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        deqRouter.swapERC20ToStAvail(makeAddr("rand"), new bytes(0));
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        deqRouter.swapERC20ToStAvailWithPermit(makeAddr("rand"), new bytes(0), 0, 0, bytes32(0), bytes32(0));
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        address from = makeAddr("from");
+        vm.deal(from, 1 ether);
+        vm.startPrank(from);
+        deqRouter.swapETHtoStAvail{value: 1 ether}(new bytes(0));
+        vm.startPrank(pauser);
         deqRouter.setPaused(false);
         assertFalse(deqRouter.paused());
+    }
+
+    function testRevertOnlyOwner_updateSwapRouter(address newSwapRouter) external {
+        address from = makeAddr("from");
+        vm.assume(from != owner);
+        vm.expectRevert(
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0))
+        );
+        vm.prank(from);
+        deqRouter.updateSwapRouter(newSwapRouter);
+    }
+
+    function testRevertZeroAddress_updateSwapRouter() external {
+        vm.prank(owner);
+        vm.expectRevert(IDeqRouter.ZeroAddress.selector);
+        deqRouter.updateSwapRouter(address(0));
+    }
+
+    function test_updateSwapContract(address newSwapRouter) external {
+        vm.assume(newSwapRouter != address(0));
+        vm.startPrank(owner);
+        deqRouter.updateSwapRouter(newSwapRouter);
+        assertEq(deqRouter.swapRouter(), newSwapRouter);
     }
 
     function testRevertInvalidOutputToken_swapERC20ToStAvail(

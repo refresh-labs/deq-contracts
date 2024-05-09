@@ -6,6 +6,7 @@ import {TransparentUpgradeableProxy} from
     "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IAccessControl} from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 import {SignedMath} from "lib/openzeppelin-contracts/contracts/utils/math/SignedMath.sol";
+import {Pausable} from "lib/openzeppelin-contracts/contracts/utils/Pausable.sol";
 import {IERC20, IStakedAvail, StakedAvail} from "src/StakedAvail.sol";
 import {MockERC20} from "src/mocks/MockERC20.sol";
 import {AvailDepository} from "src/AvailDepository.sol";
@@ -89,6 +90,22 @@ contract StakedAvailTest is StdUtils, Test {
         assertTrue(stakedAvail.hasRole(UPDATER_ROLE, updater));
         assertEq(stakedAvail.depository(), address(depository));
         assertEq(address(stakedAvail.withdrawalHelper()), address(withdrawalHelper));
+    }
+
+    function test_setPaused() external {
+        vm.startPrank(pauser);
+        stakedAvail.setPaused(true);
+        assertTrue(stakedAvail.paused());
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        stakedAvail.mint(1);
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        stakedAvail.mintWithPermit(1, 1, 1, bytes32(0), bytes32(0));
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        stakedAvail.mintTo(owner, 1);
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        stakedAvail.burn(1);
+        stakedAvail.setPaused(false);
+        assertFalse(stakedAvail.paused());
     }
 
     function testRevertZeroAmount_mint() external {
