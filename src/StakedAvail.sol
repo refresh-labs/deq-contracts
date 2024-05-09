@@ -20,7 +20,12 @@ import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol"
 /// @title StakedAvail
 /// @author Deq Protocol
 /// @notice Contract for staking Avail ERC20 tokens and minting an equivalent LST
-contract StakedAvail is PausableUpgradeable, ERC20PermitUpgradeable, AccessControlDefaultAdminRulesUpgradeable, IStakedAvail {
+contract StakedAvail is
+    PausableUpgradeable,
+    ERC20PermitUpgradeable,
+    AccessControlDefaultAdminRulesUpgradeable,
+    IStakedAvail
+{
     using Math for uint256;
     using SignedMath for int256;
     using SafeERC20 for IERC20;

@@ -71,14 +71,16 @@ contract StakedAvailTest is StdUtils, Test {
         vm.assume(
             rand != address(0)
                 && (
-                    newOwner == address(0) || newPauser == address(0) || newUpdater == address(0) || newDepository == address(0)
-                        || newWithdrawalHelper == address(0)
+                    newOwner == address(0) || newPauser == address(0) || newUpdater == address(0)
+                        || newDepository == address(0) || newWithdrawalHelper == address(0)
                 )
         );
         StakedAvail newStakedAvail = new StakedAvail(IERC20(rand));
         assertEq(address(newStakedAvail.avail()), rand);
         vm.expectRevert(IStakedAvail.ZeroAddress.selector);
-        newStakedAvail.initialize(newOwner, newPauser, newUpdater, newDepository, IAvailWithdrawalHelper(newWithdrawalHelper));
+        newStakedAvail.initialize(
+            newOwner, newPauser, newUpdater, newDepository, IAvailWithdrawalHelper(newWithdrawalHelper)
+        );
     }
 
     function test_initialize() external view {

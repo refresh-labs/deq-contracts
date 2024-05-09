@@ -22,7 +22,12 @@ import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
 /// @author Deq Protocol
 /// @notice Contract that facilitates withdrawals from Staked Avail
 /// @dev Uses the ERC721 standard to maintain withdrawal records
-contract AvailWithdrawalHelper is PausableUpgradeable, AccessControlDefaultAdminRulesUpgradeable, ERC721Upgradeable, IAvailWithdrawalHelper {
+contract AvailWithdrawalHelper is
+    PausableUpgradeable,
+    AccessControlDefaultAdminRulesUpgradeable,
+    ERC721Upgradeable,
+    IAvailWithdrawalHelper
+{
     using SafeERC20 for IERC20;
 
     bytes32 private constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
@@ -53,7 +58,10 @@ contract AvailWithdrawalHelper is PausableUpgradeable, AccessControlDefaultAdmin
     /// @param governance Address of the governance role
     /// @param newStAvail Address of the Staked Avail contract
     /// @param newMinWithdrawal Minimum withdrawal amount
-    function initialize(address governance, address pauser, IStakedAvail newStAvail, uint256 newMinWithdrawal) external initializer {
+    function initialize(address governance, address pauser, IStakedAvail newStAvail, uint256 newMinWithdrawal)
+        external
+        initializer
+    {
         if (governance == address(0) || pauser == address(0) || address(newStAvail) == address(0)) revert ZeroAddress();
         stAvail = newStAvail;
         minWithdrawal = newMinWithdrawal;
@@ -77,7 +85,12 @@ contract AvailWithdrawalHelper is PausableUpgradeable, AccessControlDefaultAdmin
     /// @notice Returns true if an EIP165 interfaceId is supported
     /// @param interfaceId An EIP165 interfaceId
     /// @return bool True if the interfaceId is supported, false if not
-    function supportsInterface(bytes4 interfaceId) public view override(IERC165, ERC721Upgradeable, AccessControlDefaultAdminRulesUpgradeable) returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(IERC165, ERC721Upgradeable, AccessControlDefaultAdminRulesUpgradeable)
+        returns (bool)
+    {
         return super.supportsInterface(interfaceId);
     }
 

@@ -45,7 +45,10 @@ contract AvailDepository is PausableUpgradeable, AccessControlDefaultAdminRulesU
     /// @param governance Address of the governance role
     /// @param newDepositor Address of the depositor role
     /// @param newDepository Address of the depository on Avail
-    function initialize(address governance, address pauser, address newDepositor, bytes32 newDepository) external initializer {
+    function initialize(address governance, address pauser, address newDepositor, bytes32 newDepository)
+        external
+        initializer
+    {
         if (governance == address(0) || newDepositor == address(0) || newDepository == bytes32(0)) {
             revert ZeroAddress();
         }

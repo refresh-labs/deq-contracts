@@ -18,7 +18,7 @@ import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
 contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgradeable, IDeqRouter {
     using SafeERC20 for IERC20;
 
-    bytes32 constant private PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 private constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     /// @notice Address of the Avail ERC20 token
     IERC20 public immutable avail;
     /// @notice Address of the 0x proxy swap router contract
@@ -36,8 +36,14 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
     /// @param pauser Address of the pauser role
     /// @param newSwapRouter Address of the 0x proxy swap router contract
     /// @param newStAvail Address of the staked Avail contract
-    function initialize(address governance, address pauser, address newSwapRouter, IStakedAvail newStAvail) external initializer {
-        if (governance == address(0) || pauser == address(0) || newSwapRouter == address(0) || address(newStAvail) == address(0)) {
+    function initialize(address governance, address pauser, address newSwapRouter, IStakedAvail newStAvail)
+        external
+        initializer
+    {
+        if (
+            governance == address(0) || pauser == address(0) || newSwapRouter == address(0)
+                || address(newStAvail) == address(0)
+        ) {
             revert ZeroAddress();
         }
         swapRouter = newSwapRouter;
