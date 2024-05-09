@@ -50,7 +50,8 @@ contract AvailDepository is PausableUpgradeable, AccessControlDefaultAdminRulesU
         external
         initializer
     {
-        if (governance == address(0) || pauser == address(0) || depositor == address(0) || newDepository == bytes32(0)) {
+        if (governance == address(0) || pauser == address(0) || depositor == address(0) || newDepository == bytes32(0))
+        {
             revert ZeroAddress();
         }
         depository = newDepository;

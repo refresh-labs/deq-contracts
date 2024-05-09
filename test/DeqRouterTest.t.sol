@@ -61,10 +61,19 @@ contract DeqRouterTest is Test {
         assertEq(address(newDeqRouter.avail()), address(newAvail));
     }
 
-    function testRevertZeroAddress_initialize(address newAvail, address newGovernance, address newPauser, address newSwapRouter, address newStakedAvail) external {
+    function testRevertZeroAddress_initialize(
+        address newAvail,
+        address newGovernance,
+        address newPauser,
+        address newSwapRouter,
+        address newStakedAvail
+    ) external {
         vm.assume(newAvail != address(0));
         DeqRouter newDeqRouter = new DeqRouter(IERC20(newAvail));
-        vm.assume(newGovernance == address(0) || newPauser == address(0) || newSwapRouter == address(0) || newStakedAvail == address(0));
+        vm.assume(
+            newGovernance == address(0) || newPauser == address(0) || newSwapRouter == address(0)
+                || newStakedAvail == address(0)
+        );
         vm.expectRevert(IDeqRouter.ZeroAddress.selector);
         newDeqRouter.initialize(newGovernance, newPauser, newSwapRouter, IStakedAvail(newStakedAvail));
     }
