@@ -22,6 +22,8 @@ contract AvailWithdrawalHelperTest is Test {
     address owner;
     address pauser;
 
+    bytes32 private constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
     function setUp() external {
         owner = msg.sender;
         pauser = makeAddr("pauser");
@@ -68,6 +70,9 @@ contract AvailWithdrawalHelperTest is Test {
     function test_initialize() external view {
         assertEq(address(withdrawalHelper.avail()), address(avail));
         assertEq(address(withdrawalHelper.stAvail()), address(stakedAvail));
+        assertEq(withdrawalHelper.owner(), owner);
+        assertTrue(withdrawalHelper.hasRole(PAUSER_ROLE, pauser));
+        assertEq(withdrawalHelper.remainingFulfillment(), 0);
         assertEq(withdrawalHelper.lastTokenId(), 0);
         assertEq(withdrawalHelper.withdrawalAmount(), 0);
         assertEq(withdrawalHelper.lastFulfillment(), 0);

@@ -87,6 +87,7 @@ contract StakedAvailTest is StdUtils, Test {
     function test_initialize() external view {
         assertEq(address(stakedAvail.avail()), address(avail));
         assertEq(stakedAvail.owner(), owner);
+        assertTrue(stakedAvail.hasRole(PAUSER_ROLE, pauser));
         assertTrue(stakedAvail.hasRole(UPDATER_ROLE, updater));
         assertEq(stakedAvail.depository(), address(depository));
         assertEq(address(stakedAvail.withdrawalHelper()), address(withdrawalHelper));
@@ -96,6 +97,10 @@ contract StakedAvailTest is StdUtils, Test {
         vm.startPrank(pauser);
         stakedAvail.setPaused(true);
         assertTrue(stakedAvail.paused());
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        stakedAvail.updateAssets(1);
+        vm.expectRevert(Pausable.EnforcedPause.selector);
+        stakedAvail.updateAssetsFromWithdrawals(1, 1);
         vm.expectRevert(Pausable.EnforcedPause.selector);
         stakedAvail.mint(1);
         vm.expectRevert(Pausable.EnforcedPause.selector);

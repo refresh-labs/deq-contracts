@@ -26,6 +26,7 @@ contract AvailDepositoryTest is Test {
     address depositor;
     bytes32 availDepositoryAddr;
 
+    bytes32 constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 constant DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE");
 
     function setUp() external {
@@ -86,6 +87,7 @@ contract AvailDepositoryTest is Test {
         assertEq(address(depository.avail()), address(avail));
         assertEq(address(depository.bridge()), address(bridge));
         assertEq(depository.depository(), availDepositoryAddr);
+        assertTrue(depository.hasRole(PAUSER_ROLE, pauser));
         assertTrue(depository.hasRole(DEPOSITOR_ROLE, depositor));
         assertEq(depository.owner(), owner);
     }
