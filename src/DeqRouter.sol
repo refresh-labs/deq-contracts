@@ -80,6 +80,7 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
         external
         whenNotPaused
     {
+        // slither-disable-next-line timestamp
         if (block.timestamp > deadline) revert ExpiredDeadline();
         (IERC20 tokenIn, IERC20 tokenOut, uint256 inAmount, uint256 minOutAmount,) =
             abi.decode(data[4:], (IERC20, IERC20, uint256, uint256, Transformation[]));
@@ -111,6 +112,7 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
         bytes32 r,
         bytes32 s
     ) external whenNotPaused {
+        // slither-disable-next-line timestamp
         if (block.timestamp > deadline) revert ExpiredDeadline();
         (IERC20 tokenIn, IERC20 tokenOut, uint256 inAmount, uint256 minOutAmount,) =
             abi.decode(data[4:], (IERC20, IERC20, uint256, uint256, Transformation[]));
@@ -133,6 +135,7 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
     /// @param deadline Deadline for the swap
     /// @param data Data for the swap from 0x API
     function swapETHtoStAvail(uint256 deadline, bytes calldata data) external payable whenNotPaused {
+        // slither-disable-next-line timestamp
         if (block.timestamp > deadline) revert ExpiredDeadline();
         (address tokenIn, IERC20 tokenOut, uint256 inAmount, uint256 minOutAmount,) =
             abi.decode(data[4:], (address, IERC20, uint256, uint256, Transformation[]));

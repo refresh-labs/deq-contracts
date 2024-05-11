@@ -85,12 +85,11 @@ contract AvailDepository is PausableUpgradeable, AccessControlDefaultAdminRulesU
     /// @dev Reverts if the sender is not the depositor
     function deposit() external whenNotPaused onlyRole(DEPOSITOR_ROLE) {
         uint256 amount = avail.balanceOf(address(this)) - 1;
+        emit Deposit(amount);
         // keep 1 wei so slot stays warm, intentionally leave return unused, since OZ impl does not return false
         // slither-disable-next-line unused-return
         avail.approve(address(bridge), amount);
         bridge.sendAVAIL(depository, amount);
-
-        emit Deposit(amount);
     }
 
     function withdraw(IERC20 token, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
