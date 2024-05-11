@@ -139,6 +139,17 @@ contract DeqRouterTest is Test {
         assertEq(deqRouter.swapRouter(), newSwapRouter);
     }
 
+    function testRevertExpiredDeadline_swapERC20ToStAvail(
+        uint248 deadline,
+        uint248 future,
+        bytes calldata data
+    ) external {
+        vm.assume(future != 0);
+        vm.warp(uint256(deadline) + uint256(future));
+        vm.expectRevert(IDeqRouter.ExpiredDeadline.selector);
+        deqRouter.swapERC20ToStAvail(makeAddr("rand"), deadline, data);
+    }
+
     function testRevertInvalidOutputToken_swapERC20ToStAvail(
         bytes4 rand,
         address tokenOut,
@@ -218,6 +229,17 @@ contract DeqRouterTest is Test {
         deqRouter.swapERC20ToStAvail(makeAddr("rand"), block.timestamp, data);
         assertEq(stakedAvail.balanceOf(from), amountOut);
         assertEq(avail.balanceOf(address(deqRouter)), 0);
+    }
+
+    function testRevertExpiredDeadline_swapERC20ToStAvailWithPermit(
+        uint248 deadline,
+        uint248 future,
+        bytes calldata data
+    ) external {
+        vm.assume(future != 0);
+        vm.warp(uint256(deadline) + uint256(future));
+        vm.expectRevert(IDeqRouter.ExpiredDeadline.selector);
+        deqRouter.swapERC20ToStAvailWithPermit(makeAddr("rand"), data, deadline, 0, bytes32(0), bytes32(0));
     }
 
     function testRevertInvalidOutputToken_swapERC20ToStAvailWithPermit(
@@ -352,6 +374,13 @@ contract DeqRouterTest is Test {
         deqRouter.swapERC20ToStAvailWithPermit(makeAddr("rand"), data, deadline, v, r, s);
         assertEq(stakedAvail.balanceOf(from), amountOut);
         assertEq(avail.balanceOf(address(deqRouter)), 0);
+    }
+
+    function testRevertExpiredDeadline_swapETHToStAvail(uint248 deadline, uint248 future, bytes calldata data) external {
+        vm.assume(future != 0);
+        vm.warp(uint256(deadline) + uint256(future));
+        vm.expectRevert(IDeqRouter.ExpiredDeadline.selector);
+        deqRouter.swapETHtoStAvail{value: 1 ether}(deadline, data);
     }
 
     function testRevertInvalidInputToken_swapETHToStAvail(
