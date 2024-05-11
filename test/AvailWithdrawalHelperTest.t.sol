@@ -52,7 +52,7 @@ contract AvailWithdrawalHelperTest is Test {
         assertEq(address(newWithdrawalHelper.avail()), rand);
     }
 
-    function testRevert_initialize(
+    function testRevertZeroAddress_initialize(
         address rand,
         address newGovernance,
         address newPauser,
@@ -60,7 +60,7 @@ contract AvailWithdrawalHelperTest is Test {
         uint256 amount
     ) external {
         vm.assume(rand != address(0));
-        AvailWithdrawalHelper newWithdrawalHelper = new AvailWithdrawalHelper(IERC20(rand));
+        AvailWithdrawalHelper newWithdrawalHelper = AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(address(new AvailWithdrawalHelper(IERC20(rand))), makeAddr("rand"), "")));
         assertEq(address(newWithdrawalHelper.avail()), rand);
         vm.assume(newGovernance == address(0) || newPauser == address(0) || newStakedAvail == address(0));
         vm.expectRevert(IAvailWithdrawalHelper.ZeroAddress.selector);

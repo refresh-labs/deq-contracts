@@ -38,6 +38,7 @@ contract AvailDepository is PausableUpgradeable, AccessControlDefaultAdminRulesU
         if (address(newAvail) == address(0) || address(newBridge) == address(0)) revert ZeroAddress();
         avail = newAvail;
         bridge = newBridge;
+        _disableInitializers();
     }
 
     /// @notice Initializes the AvailDepository contract with governance, bridge, depositor, and depository
@@ -83,10 +84,16 @@ contract AvailDepository is PausableUpgradeable, AccessControlDefaultAdminRulesU
     /// @notice Deposits Avail ERC20 to the depository on Avail
     /// @dev Reverts if the sender is not the depositor
     function deposit() external whenNotPaused onlyRole(DEPOSITOR_ROLE) {
-        uint256 amount = avail.balanceOf(address(this));
+        uint256 amount = avail.balanceOf(address(this)) - 1;
         // keep 1 wei so slot stays warm, intentionally leave return unused, since OZ impl does not return false
         // slither-disable-next-line unused-return
-        avail.approve(address(bridge), amount - 1);
-        bridge.sendAVAIL(depository, amount - 1);
+        avail.approve(address(bridge), amount);
+        bridge.sendAVAIL(depository, amount);
+
+        emit Deposit(amount);
+    }
+
+    function withdraw(IERC20 token, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        token.safeTransfer(msg.sender, amount);
     }
 }

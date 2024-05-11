@@ -70,7 +70,7 @@ contract DeqRouterTest is Test {
         address newStakedAvail
     ) external {
         vm.assume(newAvail != address(0));
-        DeqRouter newDeqRouter = new DeqRouter(IERC20(newAvail));
+        DeqRouter newDeqRouter = DeqRouter(address(new TransparentUpgradeableProxy(address(new DeqRouter(IERC20(newAvail))), makeAddr("rand"), "")));
         vm.assume(
             newGovernance == address(0) || newPauser == address(0) || newSwapRouter == address(0)
                 || newStakedAvail == address(0)
@@ -101,14 +101,14 @@ contract DeqRouterTest is Test {
         deqRouter.setPaused(true);
         assertTrue(deqRouter.paused());
         vm.expectRevert(Pausable.EnforcedPause.selector);
-        deqRouter.swapERC20ToStAvail(makeAddr("rand"), new bytes(0));
+        deqRouter.swapERC20ToStAvail(makeAddr("rand"), block.timestamp, new bytes(0));
         vm.expectRevert(Pausable.EnforcedPause.selector);
         deqRouter.swapERC20ToStAvailWithPermit(makeAddr("rand"), new bytes(0), 0, 0, bytes32(0), bytes32(0));
         vm.expectRevert(Pausable.EnforcedPause.selector);
         address from = makeAddr("from");
         vm.deal(from, 1 ether);
         vm.startPrank(from);
-        deqRouter.swapETHtoStAvail{value: 1 ether}(new bytes(0));
+        deqRouter.swapETHtoStAvail{value: 1 ether}(block.timestamp, new bytes(0));
         vm.startPrank(pauser);
         deqRouter.setPaused(false);
         assertFalse(deqRouter.paused());
@@ -156,7 +156,7 @@ contract DeqRouterTest is Test {
             abi.encodeWithSelector(rand, tokenIn, tokenOut, amountIn, minAmountOut, new IDeqRouter.Transformation[](0));
         avail.mint(address(deqRouter), amountOut);
         vm.expectRevert(IDeqRouter.InvalidOutputToken.selector);
-        deqRouter.swapERC20ToStAvail(makeAddr("rand"), data);
+        deqRouter.swapERC20ToStAvail(makeAddr("rand"), block.timestamp, data);
     }
 
     function testRevertSwapFailed_swapERC20ToStAvail(
@@ -177,7 +177,7 @@ contract DeqRouterTest is Test {
         avail.mint(address(deqRouter), amountOut);
         vm.mockCallRevert(swapRouter, data, "SomeReason");
         vm.expectRevert(abi.encodeWithSelector(IDeqRouter.SwapFailed.selector, "SomeReason"));
-        deqRouter.swapERC20ToStAvail(makeAddr("rand"), data);
+        deqRouter.swapERC20ToStAvail(makeAddr("rand"), block.timestamp, data);
     }
 
     function testRevertInvalidSlippage_swapERC20ToStAvail(
@@ -198,7 +198,7 @@ contract DeqRouterTest is Test {
         avail.mint(address(deqRouter), amountOut);
         vm.mockCall(swapRouter, data, abi.encode(amountOut));
         vm.expectRevert(IDeqRouter.ExceedsSlippage.selector);
-        deqRouter.swapERC20ToStAvail(makeAddr("rand"), data);
+        deqRouter.swapERC20ToStAvail(makeAddr("rand"), block.timestamp, data);
     }
 
     function test_swapERC20ToStAvail(bytes4 rand, uint256 amountIn, uint256 amountOut, uint256 minAmountOut) external {
@@ -213,7 +213,7 @@ contract DeqRouterTest is Test {
         );
         avail.mint(address(deqRouter), amountOut);
         vm.mockCall(swapRouter, data, abi.encode(amountOut));
-        deqRouter.swapERC20ToStAvail(makeAddr("rand"), data);
+        deqRouter.swapERC20ToStAvail(makeAddr("rand"), block.timestamp, data);
         assertEq(stakedAvail.balanceOf(from), amountOut);
         assertEq(avail.balanceOf(address(deqRouter)), 0);
     }
@@ -239,7 +239,7 @@ contract DeqRouterTest is Test {
             spender: address(deqRouter),
             value: amountIn,
             nonce: tokenIn.nonces(from),
-            deadline: deadline
+            deadline: block.timestamp
         });
 
         bytes32 digest = sigUtils.getTypedDataHash(permit);
@@ -249,7 +249,7 @@ contract DeqRouterTest is Test {
             abi.encodeWithSelector(rand, tokenIn, tokenOut, amountIn, minAmountOut, new IDeqRouter.Transformation[](0));
         avail.mint(address(deqRouter), amountOut);
         vm.expectRevert(IDeqRouter.InvalidOutputToken.selector);
-        deqRouter.swapERC20ToStAvailWithPermit(makeAddr("rand"), data, deadline, v, r, s);
+        deqRouter.swapERC20ToStAvailWithPermit(makeAddr("rand"), data, block.timestamp, v, r, s);
     }
 
     function testRevertSwapFailed_swapERC20ToStAvailWithPermit(
@@ -371,7 +371,7 @@ contract DeqRouterTest is Test {
         );
         avail.mint(address(deqRouter), amountOut);
         vm.expectRevert(IDeqRouter.InvalidInputToken.selector);
-        deqRouter.swapETHtoStAvail{value: amountIn}(data);
+        deqRouter.swapETHtoStAvail{value: amountIn}(block.timestamp, data);
     }
 
     function testRevertInvalidInputAmount_swapETHToStAvail(
@@ -397,7 +397,7 @@ contract DeqRouterTest is Test {
         );
         avail.mint(address(deqRouter), amountOut);
         vm.expectRevert(IDeqRouter.InvalidInputAmount.selector);
-        deqRouter.swapETHtoStAvail{value: wrongAmount}(data);
+        deqRouter.swapETHtoStAvail{value: wrongAmount}(block.timestamp, data);
     }
 
     function testRevertInvalidOutputToken_swapETHToStAvail(
@@ -423,7 +423,7 @@ contract DeqRouterTest is Test {
         );
         avail.mint(address(deqRouter), amountOut);
         vm.expectRevert(IDeqRouter.InvalidOutputToken.selector);
-        deqRouter.swapETHtoStAvail{value: amountIn}(data);
+        deqRouter.swapETHtoStAvail{value: amountIn}(block.timestamp, data);
     }
 
     function testRevertSwapFailed_swapETHToStAvail(
@@ -447,7 +447,7 @@ contract DeqRouterTest is Test {
         avail.mint(address(deqRouter), amountOut);
         vm.mockCallRevert(swapRouter, amountIn, data, "SomeReason");
         vm.expectRevert(abi.encodeWithSelector(IDeqRouter.SwapFailed.selector, "SomeReason"));
-        deqRouter.swapETHtoStAvail{value: amountIn}(data);
+        deqRouter.swapETHtoStAvail{value: amountIn}(block.timestamp, data);
     }
 
     function testRevertInvalidSlippage_swapETHToStAvail(
@@ -471,7 +471,7 @@ contract DeqRouterTest is Test {
         avail.mint(address(deqRouter), amountOut);
         vm.mockCall(swapRouter, amountIn, data, abi.encode(amountOut));
         vm.expectRevert(IDeqRouter.ExceedsSlippage.selector);
-        deqRouter.swapETHtoStAvail{value: amountIn}(data);
+        deqRouter.swapETHtoStAvail{value: amountIn}(block.timestamp, data);
     }
 
     function test_swapETHToStAvail(bytes4 rand, uint256 amountIn, uint256 amountOut, uint256 minAmountOut) external {
@@ -489,7 +489,7 @@ contract DeqRouterTest is Test {
         );
         avail.mint(address(deqRouter), amountOut);
         vm.mockCall(swapRouter, amountIn, data, abi.encode(amountOut));
-        deqRouter.swapETHtoStAvail{value: amountIn}(data);
+        deqRouter.swapETHtoStAvail{value: amountIn}(block.timestamp, data);
         assertEq(stakedAvail.balanceOf(from), amountOut);
         assertEq(avail.balanceOf(address(deqRouter)), 0);
     }

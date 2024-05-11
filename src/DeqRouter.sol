@@ -14,7 +14,7 @@ import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
 /// @title DeqRouter
 /// @author Deq Protocol
 /// @notice Router contract for swapping ERC20 tokens to Avail and minting staked Avail
-/// @dev The contract is upgradeable and uses AccessControlDefaultAdminRulesUpgradeable
+/// @dev The contract is upgradeable. The router does not support fee-on-transfer tokens as 0x proxy does not.
 contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgradeable, IDeqRouter {
     using SafeERC20 for IERC20;
 
@@ -29,6 +29,7 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
     constructor(IERC20 newAvail) {
         if (address(newAvail) == address(0)) revert ZeroAddress();
         avail = newAvail;
+        _disableInitializers();
     }
 
     /// @notice Initialization funciton for the DeqRouter contract
@@ -73,8 +74,10 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
 
     /// @notice Swaps an ERC20 token to staked Avail
     /// @param allowanceTarget Address of the allowance target from 0x API
+    /// @param deadline Deadline for the swap
     /// @param data Data for the swap from 0x API
-    function swapERC20ToStAvail(address allowanceTarget, bytes calldata data) external whenNotPaused {
+    function swapERC20ToStAvail(address allowanceTarget, uint256 deadline, bytes calldata data) external whenNotPaused {
+        if (block.timestamp > deadline) revert ExpiredDeadline();
         (IERC20 tokenIn, IERC20 tokenOut, uint256 inAmount, uint256 minOutAmount,) =
             abi.decode(data[4:], (IERC20, IERC20, uint256, uint256, Transformation[]));
         if (address(tokenOut) != address(avail)) revert InvalidOutputToken();
@@ -93,6 +96,10 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
     /// @notice Swaps an ERC20 token to staked Avail with permit
     /// @param allowanceTarget Address of the allowance target from 0x API
     /// @param data Data for the swap from 0x API
+    /// @param deadline Deadline for swap and permit execution
+    /// @param v Signature v
+    /// @param r Signature r
+    /// @param s Signature s
     function swapERC20ToStAvailWithPermit(
         address allowanceTarget,
         bytes calldata data,
@@ -101,6 +108,7 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
         bytes32 r,
         bytes32 s
     ) external whenNotPaused {
+        if (block.timestamp > deadline) revert ExpiredDeadline();
         (IERC20 tokenIn, IERC20 tokenOut, uint256 inAmount, uint256 minOutAmount,) =
             abi.decode(data[4:], (IERC20, IERC20, uint256, uint256, Transformation[]));
         if (address(tokenOut) != address(avail)) revert InvalidOutputToken();
@@ -119,8 +127,10 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
     }
 
     /// @notice Swaps ETH to staked Avail
+    /// @param deadline Deadline for the swap
     /// @param data Data for the swap from 0x API
-    function swapETHtoStAvail(bytes calldata data) external payable whenNotPaused {
+    function swapETHtoStAvail(uint256 deadline, bytes calldata data) external payable whenNotPaused {
+        if (block.timestamp > deadline) revert ExpiredDeadline();
         (address tokenIn, IERC20 tokenOut, uint256 inAmount, uint256 minOutAmount,) =
             abi.decode(data[4:], (address, IERC20, uint256, uint256, Transformation[]));
         if (address(tokenIn) != 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) revert InvalidInputToken();

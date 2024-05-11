@@ -48,6 +48,7 @@ contract StakedAvail is
     constructor(IERC20 newAvail) {
         if (address(newAvail) == address(0)) revert ZeroAddress();
         avail = newAvail;
+        _disableInitializers();
     }
 
     /// @notice Initializes the StakedAvail contract with governance, updater, depository, and withdrawal helper
@@ -113,9 +114,12 @@ contract StakedAvail is
     /// @param shares Amount of staked Avail burned
     function updateAssetsFromWithdrawals(uint256 amount, uint256 shares) external whenNotPaused {
         if (msg.sender != address(withdrawalHelper)) revert OnlyWithdrawalHelper();
+        // in case exchange rate is lower than at exit (assets > supply), shares is lower than previewBurn()
+        // in case exchange rate is higher, previewBurn() is lower than shares
+        // else, both are equal
+        _burn(address(this), Math.min(shares, previewBurn(amount)));
         uint256 _assets = assets - amount;
         assets = _assets;
-        _burn(address(this), shares);
 
         emit AssetsUpdated(_assets);
     }

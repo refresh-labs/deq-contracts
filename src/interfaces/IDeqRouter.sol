@@ -8,13 +8,14 @@ interface IDeqRouter {
     }
 
     error ExceedsSlippage();
+    error ExpiredDeadline();
     error InvalidInputAmount();
     error InvalidInputToken();
     error InvalidOutputToken();
     error SwapFailed(string msg);
     error ZeroAddress();
 
-    function swapERC20ToStAvail(address allowanceTarget, bytes calldata data) external;
+    function swapERC20ToStAvail(address allowanceTarget, uint256 deadline, bytes calldata data) external;
 
     function swapERC20ToStAvailWithPermit(
         address allowanceTarget,
@@ -25,5 +26,5 @@ interface IDeqRouter {
         bytes32 s
     ) external;
 
-    function swapETHtoStAvail(bytes calldata data) external payable;
+    function swapETHtoStAvail(uint256 deadline, bytes calldata data) external payable;
 }

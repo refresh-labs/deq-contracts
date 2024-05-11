@@ -76,7 +76,7 @@ contract StakedAvailTest is StdUtils, Test {
                         || newDepository == address(0) || newWithdrawalHelper == address(0)
                 )
         );
-        StakedAvail newStakedAvail = new StakedAvail(IERC20(rand));
+        StakedAvail newStakedAvail = StakedAvail(address(new TransparentUpgradeableProxy(address(new StakedAvail(IERC20(rand))), makeAddr("rand"), "")));
         assertEq(address(newStakedAvail.avail()), rand);
         vm.expectRevert(IStakedAvail.ZeroAddress.selector);
         newStakedAvail.initialize(
@@ -461,28 +461,23 @@ contract StakedAvailTest is StdUtils, Test {
     }
 
     function test_updateAssetsFromWithdrawalHelper(
-        uint256 assets,
-        uint256 amount,
-        uint256 burnAmount,
-        uint256 burnShares
+        uint248 amount,
+        uint248 burnAmount
     ) external {
         vm.assume(
-            assets != 0 && amount != 0 && burnAmount != 0 && burnShares != 0 && burnAmount <= assets
-                && burnShares <= amount
+            amount >= burnAmount && burnAmount > withdrawalHelper.minWithdrawal() && amount < type(uint256).max
         );
         address from = makeAddr("from");
         vm.startPrank(from);
         avail.mint(from, amount);
         avail.approve(address(stakedAvail), amount);
         stakedAvail.mint(amount);
-        // need deal here because we don't burn and get stAVAIL at stAVAIL address
-        deal(address(stakedAvail), address(stakedAvail), burnShares);
-        vm.startPrank(owner);
-        stakedAvail.forceUpdateAssets(assets);
-        vm.startPrank(address(withdrawalHelper));
-        stakedAvail.updateAssetsFromWithdrawals(burnAmount, burnShares);
-        assertEq(stakedAvail.assets(), assets - burnAmount);
-        assertEq(stakedAvail.totalSupply(), amount - burnShares);
+        stakedAvail.burn(burnAmount);
+        vm.expectCall(address(stakedAvail), abi.encodeWithSelector(IStakedAvail.updateAssetsFromWithdrawals.selector, burnAmount, burnAmount));
+        avail.mint(address(withdrawalHelper), burnAmount);
+        withdrawalHelper.burn(1);
+        assertEq(stakedAvail.assets(), amount - burnAmount);
+        assertEq(stakedAvail.totalSupply(), amount - burnAmount);
     }
 
     function test_previewMint(uint248 amount) external {

@@ -55,6 +55,7 @@ contract AvailWithdrawalHelper is
     constructor(IERC20 newAvail) {
         if (address(newAvail) == address(0)) revert ZeroAddress();
         avail = newAvail;
+        _disableInitializers();
     }
 
     /// @notice Initializes the AvailWithdrawalHelper contract with governance, Avail, Staked Avail, and minimum withdrawal
@@ -99,7 +100,7 @@ contract AvailWithdrawalHelper is
     }
 
     /// @notice Returns fulfilment amount between lastFulfillment and till
-    /// @dev Reverts if till is less than or equal to lastFulfillment
+    /// @dev Reverts from underflow if till is behind lastFulfillment
     /// @param till Token ID to iterate till
     function previewFulfill(uint256 till) public view returns (uint256 amount) {
         return withdrawals[till].accAmount - withdrawals[lastFulfillment].accAmount;

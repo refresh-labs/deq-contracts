@@ -63,7 +63,7 @@ contract AvailDepositoryTest is Test {
         assertEq(address(newDepository.avail()), rand);
     }
 
-    function testRevert_Initialize(
+    function testRevertZeroAddress_Initialize(
         address rand,
         address newGovernance,
         address newPauser,
@@ -77,7 +77,7 @@ contract AvailDepositoryTest is Test {
                         || newAvailDepositoryAddr == bytes32(0)
                 )
         );
-        AvailDepository newDepository = new AvailDepository(IERC20(rand), IAvailBridge(rand));
+        AvailDepository newDepository = AvailDepository(address(new TransparentUpgradeableProxy(address(new AvailDepository(IERC20(rand), IAvailBridge(rand))), makeAddr("rand"), "")));
         assertEq(address(newDepository.avail()), rand);
         vm.expectRevert(IAvailDepository.ZeroAddress.selector);
         newDepository.initialize(newGovernance, newPauser, newDepositor, newAvailDepositoryAddr);
