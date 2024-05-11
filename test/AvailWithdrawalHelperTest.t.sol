@@ -60,7 +60,11 @@ contract AvailWithdrawalHelperTest is Test {
         uint256 amount
     ) external {
         vm.assume(rand != address(0));
-        AvailWithdrawalHelper newWithdrawalHelper = AvailWithdrawalHelper(address(new TransparentUpgradeableProxy(address(new AvailWithdrawalHelper(IERC20(rand))), makeAddr("rand"), "")));
+        AvailWithdrawalHelper newWithdrawalHelper = AvailWithdrawalHelper(
+            address(
+                new TransparentUpgradeableProxy(address(new AvailWithdrawalHelper(IERC20(rand))), makeAddr("rand"), "")
+            )
+        );
         assertEq(address(newWithdrawalHelper.avail()), rand);
         vm.assume(newGovernance == address(0) || newPauser == address(0) || newStakedAvail == address(0));
         vm.expectRevert(IAvailWithdrawalHelper.ZeroAddress.selector);

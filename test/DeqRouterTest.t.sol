@@ -70,7 +70,9 @@ contract DeqRouterTest is Test {
         address newStakedAvail
     ) external {
         vm.assume(newAvail != address(0));
-        DeqRouter newDeqRouter = DeqRouter(address(new TransparentUpgradeableProxy(address(new DeqRouter(IERC20(newAvail))), makeAddr("rand"), "")));
+        DeqRouter newDeqRouter = DeqRouter(
+            address(new TransparentUpgradeableProxy(address(new DeqRouter(IERC20(newAvail))), makeAddr("rand"), ""))
+        );
         vm.assume(
             newGovernance == address(0) || newPauser == address(0) || newSwapRouter == address(0)
                 || newStakedAvail == address(0)

@@ -76,7 +76,10 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
     /// @param allowanceTarget Address of the allowance target from 0x API
     /// @param deadline Deadline for the swap
     /// @param data Data for the swap from 0x API
-    function swapERC20ToStAvail(address allowanceTarget, uint256 deadline, bytes calldata data) external whenNotPaused {
+    function swapERC20ToStAvail(address allowanceTarget, uint256 deadline, bytes calldata data)
+        external
+        whenNotPaused
+    {
         if (block.timestamp > deadline) revert ExpiredDeadline();
         (IERC20 tokenIn, IERC20 tokenOut, uint256 inAmount, uint256 minOutAmount,) =
             abi.decode(data[4:], (IERC20, IERC20, uint256, uint256, Transformation[]));

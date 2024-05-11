@@ -76,7 +76,9 @@ contract StakedAvailTest is StdUtils, Test {
                         || newDepository == address(0) || newWithdrawalHelper == address(0)
                 )
         );
-        StakedAvail newStakedAvail = StakedAvail(address(new TransparentUpgradeableProxy(address(new StakedAvail(IERC20(rand))), makeAddr("rand"), "")));
+        StakedAvail newStakedAvail = StakedAvail(
+            address(new TransparentUpgradeableProxy(address(new StakedAvail(IERC20(rand))), makeAddr("rand"), ""))
+        );
         assertEq(address(newStakedAvail.avail()), rand);
         vm.expectRevert(IStakedAvail.ZeroAddress.selector);
         newStakedAvail.initialize(
@@ -460,20 +462,18 @@ contract StakedAvailTest is StdUtils, Test {
         stakedAvail.updateAssetsFromWithdrawals(amount, shares);
     }
 
-    function test_updateAssetsFromWithdrawalHelper(
-        uint248 amount,
-        uint248 burnAmount
-    ) external {
-        vm.assume(
-            amount >= burnAmount && burnAmount > withdrawalHelper.minWithdrawal() && amount < type(uint256).max
-        );
+    function test_updateAssetsFromWithdrawalHelper(uint248 amount, uint248 burnAmount) external {
+        vm.assume(amount >= burnAmount && burnAmount > withdrawalHelper.minWithdrawal() && amount < type(uint256).max);
         address from = makeAddr("from");
         vm.startPrank(from);
         avail.mint(from, amount);
         avail.approve(address(stakedAvail), amount);
         stakedAvail.mint(amount);
         stakedAvail.burn(burnAmount);
-        vm.expectCall(address(stakedAvail), abi.encodeWithSelector(IStakedAvail.updateAssetsFromWithdrawals.selector, burnAmount, burnAmount));
+        vm.expectCall(
+            address(stakedAvail),
+            abi.encodeWithSelector(IStakedAvail.updateAssetsFromWithdrawals.selector, burnAmount, burnAmount)
+        );
         avail.mint(address(withdrawalHelper), burnAmount);
         withdrawalHelper.burn(1);
         assertEq(stakedAvail.assets(), amount - burnAmount);

@@ -77,7 +77,13 @@ contract AvailDepositoryTest is Test {
                         || newAvailDepositoryAddr == bytes32(0)
                 )
         );
-        AvailDepository newDepository = AvailDepository(address(new TransparentUpgradeableProxy(address(new AvailDepository(IERC20(rand), IAvailBridge(rand))), makeAddr("rand"), "")));
+        AvailDepository newDepository = AvailDepository(
+            address(
+                new TransparentUpgradeableProxy(
+                    address(new AvailDepository(IERC20(rand), IAvailBridge(rand))), makeAddr("rand"), ""
+                )
+            )
+        );
         assertEq(address(newDepository.avail()), rand);
         vm.expectRevert(IAvailDepository.ZeroAddress.selector);
         newDepository.initialize(newGovernance, newPauser, newDepositor, newAvailDepositoryAddr);
