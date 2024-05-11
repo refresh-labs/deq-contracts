@@ -139,11 +139,9 @@ contract DeqRouterTest is Test {
         assertEq(deqRouter.swapRouter(), newSwapRouter);
     }
 
-    function testRevertExpiredDeadline_swapERC20ToStAvail(
-        uint248 deadline,
-        uint248 future,
-        bytes calldata data
-    ) external {
+    function testRevertExpiredDeadline_swapERC20ToStAvail(uint248 deadline, uint248 future, bytes calldata data)
+        external
+    {
         vm.assume(future != 0);
         vm.warp(uint256(deadline) + uint256(future));
         vm.expectRevert(IDeqRouter.ExpiredDeadline.selector);
@@ -375,7 +373,9 @@ contract DeqRouterTest is Test {
         assertEq(avail.balanceOf(address(deqRouter)), 0);
     }
 
-    function testRevertExpiredDeadline_swapETHToStAvail(uint248 deadline, uint248 future, bytes calldata data) external {
+    function testRevertExpiredDeadline_swapETHToStAvail(uint248 deadline, uint248 future, bytes calldata data)
+        external
+    {
         vm.assume(future != 0);
         vm.warp(uint256(deadline) + uint256(future));
         vm.expectRevert(IDeqRouter.ExpiredDeadline.selector);

@@ -480,8 +480,15 @@ contract StakedAvailTest is StdUtils, Test {
         assertEq(stakedAvail.totalSupply(), amount - burnAmount);
     }
 
-    function test_updateAssetsFromWithdrawalHelperWhenExchangeRateIsHigher(uint248 amount, uint248 burnAmount, uint248 delta) external {
-        vm.assume(delta != 0 && amount < type(uint256).max && uint256(amount) >= (uint256(burnAmount) + uint256(delta)) && burnAmount > withdrawalHelper.minWithdrawal());
+    function test_updateAssetsFromWithdrawalHelperWhenExchangeRateIsHigher(
+        uint248 amount,
+        uint248 burnAmount,
+        uint248 delta
+    ) external {
+        vm.assume(
+            delta != 0 && amount < type(uint256).max && uint256(amount) >= (uint256(burnAmount) + uint256(delta))
+                && burnAmount > withdrawalHelper.minWithdrawal()
+        );
         address from = makeAddr("from");
         vm.startPrank(from);
         avail.mint(from, amount);
@@ -502,9 +509,15 @@ contract StakedAvailTest is StdUtils, Test {
         assertGt(stakedAvail.totalSupply(), amount - burnAmount);
     }
 
-
-    function test_updateAssetsFromWithdrawalHelperWhenExchangeRateIsLower(uint248 amount, uint248 burnAmount, int248 delta) external {
-        vm.assume(delta > 0 && amount < type(uint256).max && uint256(amount) >= uint256(burnAmount) && burnAmount > withdrawalHelper.minWithdrawal());
+    function test_updateAssetsFromWithdrawalHelperWhenExchangeRateIsLower(
+        uint248 amount,
+        uint248 burnAmount,
+        int248 delta
+    ) external {
+        vm.assume(
+            delta > 0 && amount < type(uint256).max && uint256(amount) >= uint256(burnAmount)
+                && burnAmount > withdrawalHelper.minWithdrawal()
+        );
         address from = makeAddr("from");
         vm.startPrank(from);
         avail.mint(from, amount);

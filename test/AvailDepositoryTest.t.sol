@@ -156,7 +156,9 @@ contract AvailDepositoryTest is Test {
     function testRevertOnlyOwner_withdraw(IERC20 token, uint256 amount) external {
         address from = makeAddr("from");
         vm.assume(from != owner);
-        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0)));
+        vm.expectRevert(
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0))
+        );
         vm.prank(from);
         depository.withdraw(token, amount);
     }
