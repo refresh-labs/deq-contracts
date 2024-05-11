@@ -502,7 +502,7 @@ contract StakedAvailTest is StdUtils, Test {
         avail.mint(address(withdrawalHelper), burnAmount);
         vm.startPrank(updater);
         // deflate value of stAvail
-        stakedAvail.updateAssets(-int248(delta));
+        stakedAvail.updateAssets(-int256(uint256(delta)));
         withdrawalHelper.burn(1);
         assertEq(stakedAvail.assets(), amount - burnAmount - delta);
         // assert here that total supply reduces less than normal
