@@ -247,8 +247,7 @@ contract DeqRouterTest is Test {
         address tokenOut,
         uint256 amountIn,
         uint256 amountOut,
-        uint256 minAmountOut,
-        uint256 deadline
+        uint256 minAmountOut
     ) external {
         vm.assume(
             amountIn > 0 && amountOut > 0 && minAmountOut > 0 && minAmountOut <= amountOut && tokenOut != address(avail)

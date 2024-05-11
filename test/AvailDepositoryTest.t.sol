@@ -152,4 +152,20 @@ contract AvailDepositoryTest is Test {
         // bridge burns the deposited amount
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
     }
+
+    function testRevertOnlyOwner_withdraw(IERC20 token, uint256 amount) external {
+        address from = makeAddr("from");
+        vm.assume(from != owner);
+        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0)));
+        vm.prank(from);
+        depository.withdraw(token, amount);
+    }
+
+    function test_withdraw(uint256 amount) external {
+        IERC20 token = new MockERC20("Token", "TKN");
+        deal(address(token), address(depository), amount);
+        vm.prank(owner);
+        depository.withdraw(token, amount);
+        assertEq(token.balanceOf(owner), amount);
+    }
 }
