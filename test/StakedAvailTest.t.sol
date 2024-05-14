@@ -495,18 +495,19 @@ contract StakedAvailTest is StdUtils, Test {
         avail.approve(address(stakedAvail), amount);
         stakedAvail.mint(amount);
         stakedAvail.burn(burnAmount);
-        vm.expectCall(
-            address(stakedAvail),
-            abi.encodeWithSelector(IStakedAvail.updateAssetsFromWithdrawals.selector, burnAmount, burnAmount)
-        );
         avail.mint(address(withdrawalHelper), burnAmount);
         vm.startPrank(updater);
         // deflate value of stAvail
         stakedAvail.updateAssets(-int256(uint256(delta)));
+        uint256 returnAmt = stakedAvail.previewBurn(burnAmount);
+        vm.expectCall(
+            address(stakedAvail),
+            abi.encodeWithSelector(IStakedAvail.updateAssetsFromWithdrawals.selector, returnAmt, burnAmount)
+        );
         withdrawalHelper.burn(1);
-        assertEq(stakedAvail.assets(), amount - burnAmount - delta);
-        // assert here that total supply reduces less than normal
-        assertGt(stakedAvail.totalSupply(), amount - burnAmount);
+        assertEq(avail.balanceOf(from), returnAmt);
+        assertEq(stakedAvail.assets(), amount - returnAmt - delta);
+        assertEq(stakedAvail.totalSupply(), amount - burnAmount);
     }
 
     function test_updateAssetsFromWithdrawalHelperWhenExchangeRateIsLower(
@@ -533,6 +534,7 @@ contract StakedAvailTest is StdUtils, Test {
         // deflate value of stAvail
         stakedAvail.updateAssets(int256(delta));
         withdrawalHelper.burn(1);
+        assertEq(stakedAvail.balanceOf(from), amount - burnAmount);
         assertEq(stakedAvail.assets(), amount - burnAmount + uint256(uint248(delta)));
         // assert here that total supply stays the same
         assertEq(stakedAvail.totalSupply(), amount - burnAmount);
