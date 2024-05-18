@@ -48,6 +48,7 @@ contract StakedAvail is
     constructor(IERC20 newAvail) {
         if (address(newAvail) == address(0)) revert ZeroAddress();
         avail = newAvail;
+        _disableInitializers();
     }
 
     /// @notice Initializes the StakedAvail contract with governance, updater, depository, and withdrawal helper

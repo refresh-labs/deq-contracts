@@ -7,6 +7,8 @@ interface IAvailDepository {
     error OnlyDepositor();
     error ZeroAddress();
 
+    event Deposit(uint256 amount);
+
     function updateDepository(bytes32 _depository) external;
     function deposit() external;
 }

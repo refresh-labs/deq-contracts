@@ -10,10 +10,11 @@ import {
     IERC721Metadata,
     ERC721Upgradeable
 } from "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC721/ERC721Upgradeable.sol";
-import {PausableUpgradeable} from "lib/openzeppelin-contracts-upgradeable/contracts/utils/PausableUpgradeable.sol";
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {Ownable2StepUpgradeable} from
     "lib/openzeppelin-contracts-upgradeable/contracts/access/Ownable2StepUpgradeable.sol";
+import {PausableUpgradeable} from "lib/openzeppelin-contracts-upgradeable/contracts/utils/PausableUpgradeable.sol";
+import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {IAvailWithdrawalHelper} from "src/interfaces/IAvailWithdrawalHelper.sol";
 import {IStakedAvail} from "src/interfaces/IStakedAvail.sol";
@@ -28,6 +29,7 @@ contract AvailWithdrawalHelper is
     ERC721Upgradeable,
     IAvailWithdrawalHelper
 {
+    using Math for uint256;
     using SafeERC20 for IERC20;
 
     bytes32 private constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
@@ -55,6 +57,7 @@ contract AvailWithdrawalHelper is
     constructor(IERC20 newAvail) {
         if (address(newAvail) == address(0)) revert ZeroAddress();
         avail = newAvail;
+        _disableInitializers();
     }
 
     /// @notice Initializes the AvailWithdrawalHelper contract with governance, Avail, Staked Avail, and minimum withdrawal
@@ -99,7 +102,7 @@ contract AvailWithdrawalHelper is
     }
 
     /// @notice Returns fulfilment amount between lastFulfillment and till
-    /// @dev Reverts if till is less than or equal to lastFulfillment
+    /// @dev Reverts from underflow if till is behind lastFulfillment
     /// @param till Token ID to iterate till
     function previewFulfill(uint256 till) public view returns (uint256 amount) {
         return withdrawals[till].accAmount - withdrawals[lastFulfillment].accAmount;
@@ -137,8 +140,9 @@ contract AvailWithdrawalHelper is
         address owner = ownerOf(id);
         withdrawalAmount -= amount;
         _burn(id);
-        stAvail.updateAssetsFromWithdrawals(amount, withdrawal.shares);
-        avail.safeTransfer(owner, amount);
+        uint256 returnAmt = Math.min(amount, stAvail.previewBurn(withdrawal.shares));
+        stAvail.updateAssetsFromWithdrawals(returnAmt, withdrawal.shares);
+        avail.safeTransfer(owner, returnAmt);
     }
 
     /// @notice Returns the withdrawal amount and shares in a particular ID

@@ -63,7 +63,7 @@ contract AvailDepositoryTest is Test {
         assertEq(address(newDepository.avail()), rand);
     }
 
-    function testRevert_Initialize(
+    function testRevertZeroAddress_Initialize(
         address rand,
         address newGovernance,
         address newPauser,
@@ -77,7 +77,13 @@ contract AvailDepositoryTest is Test {
                         || newAvailDepositoryAddr == bytes32(0)
                 )
         );
-        AvailDepository newDepository = new AvailDepository(IERC20(rand), IAvailBridge(rand));
+        AvailDepository newDepository = AvailDepository(
+            address(
+                new TransparentUpgradeableProxy(
+                    address(new AvailDepository(IERC20(rand), IAvailBridge(rand))), makeAddr("rand"), ""
+                )
+            )
+        );
         assertEq(address(newDepository.avail()), rand);
         vm.expectRevert(IAvailDepository.ZeroAddress.selector);
         newDepository.initialize(newGovernance, newPauser, newDepositor, newAvailDepositoryAddr);
@@ -145,5 +151,23 @@ contract AvailDepositoryTest is Test {
         assertEq(avail.balanceOf(address(depository)), 1);
         // bridge burns the deposited amount
         assertEq(avail.balanceOf(address(stakedAvail)), 0);
+    }
+
+    function testRevertOnlyOwner_withdraw(IERC20 token, uint256 amount) external {
+        address from = makeAddr("from");
+        vm.assume(from != owner);
+        vm.expectRevert(
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, from, bytes32(0))
+        );
+        vm.prank(from);
+        depository.withdraw(token, amount);
+    }
+
+    function test_withdraw(uint256 amount) external {
+        IERC20 token = new MockERC20("Token", "TKN");
+        deal(address(token), address(depository), amount);
+        vm.prank(owner);
+        depository.withdraw(token, amount);
+        assertEq(token.balanceOf(owner), amount);
     }
 }
