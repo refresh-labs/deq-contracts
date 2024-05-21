@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // taken from: https://book.getfoundry.sh/tutorials/testing-eip712
-pragma solidity 0.8.25;
+pragma solidity 0.8.26;
 
 contract SigUtils {
     bytes32 internal DOMAIN_SEPARATOR;

@@ -5,7 +5,7 @@ libs = ["lib"]
 optimizer = true
 optimizer_runs = 999999
 via_ir = true
-solc_version = "0.8.25"
+solc_version = "0.8.26"
 evm_version = "cancun"
 
 [profile.default.fuzz]
