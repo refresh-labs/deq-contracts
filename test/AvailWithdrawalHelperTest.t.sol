@@ -205,7 +205,7 @@ contract AvailWithdrawalHelperTest is Test {
         assertEq(stakedAvail.assets(), 0);
     }
 
-        function test_checkThatAccAmountIsAlwaysHigher(uint128 amount128, uint128 burnAmount128) external {
+    function test_checkThatAccAmountIsAlwaysHigher(uint128 amount128, uint128 burnAmount128) external {
         uint256 amount = uint256(amount128);
         uint256 burnAmount = uint256(burnAmount128);
         vm.assume(
