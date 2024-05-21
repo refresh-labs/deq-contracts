@@ -53,10 +53,9 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
         _grantRole(PAUSER_ROLE, pauser);
     }
 
-    /**
-     * @notice  Updates pause status of the router
-     * @param   status  New pause status
-     */
+    /// @notice Updates pause status of the depository
+    /// @dev Setting true pauses the contract, setting false unpauses the contract
+    /// @param status New pause status
     function setPaused(bool status) external onlyRole(PAUSER_ROLE) {
         if (status) {
             _pause();

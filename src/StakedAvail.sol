@@ -79,10 +79,9 @@ contract StakedAvail is
         _grantRole(UPDATER_ROLE, updater);
     }
 
-    /**
-     * @notice  Updates pause status of the token
-     * @param   status  New pause status
-     */
+    /// @notice Updates pause status of the depository
+    /// @dev Setting true pauses the contract, setting false unpauses the contract
+    /// @param status New pause status
     function setPaused(bool status) external onlyRole(PAUSER_ROLE) {
         if (status) {
             _pause();
@@ -121,7 +120,7 @@ contract StakedAvail is
         emit AssetsUpdated(_assets);
     }
 
-    /// @notice Allows governance to force update assets in case of incidents
+    /// @notice Allows governance to force update assets in case of emergency
     /// @dev Reverts if newAssets is 0
     /// @param newAssets New amount of assets
     function forceUpdateAssets(uint256 newAssets) external onlyRole(DEFAULT_ADMIN_ROLE) {

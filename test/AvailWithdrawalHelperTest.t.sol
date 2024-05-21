@@ -205,6 +205,46 @@ contract AvailWithdrawalHelperTest is Test {
         assertEq(stakedAvail.assets(), 0);
     }
 
+        function test_checkThatAccAmountIsAlwaysHigher(uint128 amount128, uint128 burnAmount128) external {
+        uint256 amount = uint256(amount128);
+        uint256 burnAmount = uint256(burnAmount128);
+        vm.assume(
+            amount > burnAmount && (amount - burnAmount) > withdrawalHelper.minWithdrawal()
+                && burnAmount > withdrawalHelper.minWithdrawal()
+        );
+        address from = makeAddr("from");
+        avail.mint(from, amount);
+        vm.startPrank(from);
+        avail.approve(address(stakedAvail), amount);
+        stakedAvail.mint(amount);
+        stakedAvail.burn(amount - burnAmount);
+        avail.mint(address(withdrawalHelper), amount);
+        (uint256 amt2, uint256 shrs2) = withdrawalHelper.getWithdrawal(1);
+        assertEq(amt2, amount - burnAmount);
+        assertEq(shrs2, amount - burnAmount);
+        withdrawalHelper.burn(1);
+        assertEq(withdrawalHelper.withdrawalAmount(), 0);
+        assertEq(withdrawalHelper.lastFulfillment(), 1);
+        assertEq(withdrawalHelper.previewFulfill(1), 0);
+        assertEq(avail.balanceOf(from), amount - burnAmount);
+        assertEq(stakedAvail.balanceOf(from), burnAmount);
+        assertEq(stakedAvail.balanceOf(address(stakedAvail)), 0);
+        assertEq(stakedAvail.totalSupply(), burnAmount);
+        assertEq(stakedAvail.assets(), burnAmount);
+        stakedAvail.burn(burnAmount);
+        (uint256 accAmount1,) = withdrawalHelper.withdrawals(1);
+        (uint256 accAmount2,) = withdrawalHelper.withdrawals(2);
+        assertTrue(accAmount2 > accAmount1);
+        withdrawalHelper.burn(2);
+        assertEq(withdrawalHelper.withdrawalAmount(), 0);
+        assertEq(withdrawalHelper.lastFulfillment(), 2);
+        assertEq(withdrawalHelper.previewFulfill(2), 0);
+        assertEq(stakedAvail.balanceOf(from), 0);
+        assertEq(stakedAvail.balanceOf(address(stakedAvail)), 0);
+        assertEq(stakedAvail.totalSupply(), 0);
+        assertEq(stakedAvail.assets(), 0);
+    }
+
     function test_scenarioQueue1(uint128 amountA, uint64 burnA, uint64 burnB, uint64 burnC) external {
         uint256 amount = uint256(amountA);
         uint256 burn1 = uint256(burnA);

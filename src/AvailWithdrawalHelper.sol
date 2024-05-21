@@ -49,7 +49,7 @@ contract AvailWithdrawalHelper is
     /// @notice Remaining amount from previous fulfillments
     uint256 public remainingFulfillment;
 
-    mapping(uint256 => Withdrawal) private withdrawals;
+    mapping(uint256 => Withdrawal) public withdrawals;
 
     /// @notice Constructor for the AvailWithdrawalHelper contract
     /// @param newAvail Address of the Avail ERC20 token
@@ -77,10 +77,9 @@ contract AvailWithdrawalHelper is
         _grantRole(PAUSER_ROLE, pauser);
     }
 
-    /**
-     * @notice  Updates pause status of the helper contract
-     * @param   status  New pause status
-     */
+    /// @notice Updates pause status of the depository
+    /// @dev Setting true pauses the contract, setting false unpauses the contract
+    /// @param status New pause status
     function setPaused(bool status) external onlyRole(PAUSER_ROLE) {
         if (status) {
             _pause();

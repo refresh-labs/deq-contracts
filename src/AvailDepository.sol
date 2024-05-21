@@ -61,10 +61,9 @@ contract AvailDepository is PausableUpgradeable, AccessControlDefaultAdminRulesU
         _grantRole(DEPOSITOR_ROLE, depositor);
     }
 
-    /**
-     * @notice  Updates pause status of the depository
-     * @param   status  New pause status
-     */
+    /// @notice Updates pause status of the depository
+    /// @dev Setting true pauses the contract, setting false unpauses the contract
+    /// @param status New pause status
     function setPaused(bool status) external onlyRole(PAUSER_ROLE) {
         if (status) {
             _pause();
