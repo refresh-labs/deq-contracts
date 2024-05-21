@@ -92,6 +92,11 @@ contract AvailDepository is PausableUpgradeable, AccessControlDefaultAdminRulesU
         bridge.sendAVAIL(depository, amount);
     }
 
+    /// @notice Withdraws an arbitrary ERC20 from the depository contract to the governance address
+    /// @dev This is used to recover funds in the case of an emergency, such as if the bridge is in an inoperative
+    /// state
+    /// @param token Address of the ERC20 token to withdraw
+    /// @param amount Amount of the ERC20 token to withdraw
     function withdraw(IERC20 token, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
         token.safeTransfer(msg.sender, amount);
     }
