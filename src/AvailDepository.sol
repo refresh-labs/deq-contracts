@@ -35,7 +35,7 @@ contract AvailDepository is PausableUpgradeable, AccessControlDefaultAdminRulesU
     /// @param newAvail Address of the Avail ERC20 token
     /// @param newBridge Address of the Avail bridge contract
     constructor(IERC20 newAvail, IAvailBridge newBridge) {
-        if (address(newAvail) == address(0) || address(newBridge) == address(0)) revert ZeroAddress();
+        require(address(newAvail) != address(0) && address(newBridge) != address(0), ZeroAddress());
         avail = newAvail;
         bridge = newBridge;
         _disableInitializers();
@@ -51,10 +51,10 @@ contract AvailDepository is PausableUpgradeable, AccessControlDefaultAdminRulesU
         external
         initializer
     {
-        if (governance == address(0) || pauser == address(0) || depositor == address(0) || newDepository == bytes32(0))
-        {
-            revert ZeroAddress();
-        }
+        require(
+            governance != address(0) && pauser != address(0) && depositor != address(0) && newDepository != bytes32(0),
+            ZeroAddress()
+        );
         depository = newDepository;
         __AccessControlDefaultAdminRules_init(0, governance);
         _grantRole(PAUSER_ROLE, pauser);
@@ -76,7 +76,7 @@ contract AvailDepository is PausableUpgradeable, AccessControlDefaultAdminRulesU
     /// @dev Reverts if the new depository address is the zero address
     /// @param newDepository Address of the new depository on Avail
     function updateDepository(bytes32 newDepository) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newDepository == bytes32(0)) revert ZeroAddress();
+        require(newDepository != bytes32(0), ZeroAddress());
         depository = newDepository;
     }
 

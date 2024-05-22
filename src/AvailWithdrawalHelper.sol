@@ -55,7 +55,7 @@ contract AvailWithdrawalHelper is
     /// @param newAvail Address of the Avail ERC20 token
     /// @dev Reverts if the Avail token address is the zero address
     constructor(IERC20 newAvail) {
-        if (address(newAvail) == address(0)) revert ZeroAddress();
+        require(address(newAvail) != address(0), ZeroAddress());
         avail = newAvail;
         _disableInitializers();
     }
@@ -69,7 +69,7 @@ contract AvailWithdrawalHelper is
         external
         initializer
     {
-        if (governance == address(0) || pauser == address(0) || address(newStAvail) == address(0)) revert ZeroAddress();
+        require(governance != address(0) && pauser != address(0) && address(newStAvail) != address(0), ZeroAddress());
         stAvail = newStAvail;
         minWithdrawal = newMinWithdrawal;
         __ERC721_init("Exited Staked Avail", "exStAvail");
@@ -113,8 +113,8 @@ contract AvailWithdrawalHelper is
     /// @param amount Amount of Avail to transfer at receipt burn
     /// @param shares Amount of staked Avail to burn at receipt burn
     function mint(address account, uint256 amount, uint256 shares) external whenNotPaused {
-        if (msg.sender != address(stAvail)) revert OnlyStakedAvail();
-        if (amount < minWithdrawal) revert InvalidWithdrawalAmount();
+        require(msg.sender == address(stAvail), OnlyStakedAvail());
+        require(amount >= minWithdrawal, InvalidWithdrawalAmount());
         uint256 tokenId;
         unchecked {
             tokenId = ++lastTokenId;
@@ -157,9 +157,7 @@ contract AvailWithdrawalHelper is
     /// @param till Token ID to fulfill till
     function _fulfill(uint256 till) private {
         uint256 fulfillmentRequired = previewFulfill(till) + remainingFulfillment;
-        if (avail.balanceOf(address(this)) < fulfillmentRequired) {
-            revert NotFulfilled();
-        }
+        require(avail.balanceOf(address(this)) >= fulfillmentRequired, NotFulfilled());
         lastFulfillment = till;
         remainingFulfillment = fulfillmentRequired;
     }

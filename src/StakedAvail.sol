@@ -46,7 +46,7 @@ contract StakedAvail is
     /// @notice Constructor for the StakedAvail contract
     /// @param newAvail Address of the Avail ERC20 token
     constructor(IERC20 newAvail) {
-        if (address(newAvail) == address(0)) revert ZeroAddress();
+        require(address(newAvail) != address(0), ZeroAddress());
         avail = newAvail;
         _disableInitializers();
     }
@@ -64,12 +64,12 @@ contract StakedAvail is
         address newDepository,
         IAvailWithdrawalHelper newWithdrawalHelper
     ) external initializer {
-        if (
-            governance == address(0) || pauser == address(0) || updater == address(0) || newDepository == address(0)
-                || address(newWithdrawalHelper) == address(0)
-        ) {
-            revert ZeroAddress();
-        }
+        require(
+            governance != address(0) && pauser != address(0) && updater != address(0) && newDepository != address(0)
+                && address(newWithdrawalHelper) != address(0),
+            ZeroAddress()
+        );
+
         depository = newDepository;
         withdrawalHelper = newWithdrawalHelper;
         __ERC20_init("Staked Avail", "stAVAIL");
@@ -94,11 +94,11 @@ contract StakedAvail is
     /// @dev Negative delta decreases assets, positive delta increases assets
     /// @param delta Amount to update assets by
     function updateAssets(int256 delta) external whenNotPaused onlyRole(UPDATER_ROLE) {
-        if (delta == 0) revert InvalidUpdate();
+        require(delta != 0, InvalidUpdate());
         uint256 _assets;
         if (delta < 0) {
             _assets = assets - delta.abs();
-            if (_assets == 0) revert InvalidUpdate();
+            require(_assets != 0, InvalidUpdate());
         } else {
             _assets = assets + uint256(delta);
         }
@@ -112,7 +112,7 @@ contract StakedAvail is
     /// @param amount Amount of Avail withdrawn
     /// @param shares Amount of staked Avail burned
     function updateAssetsFromWithdrawals(uint256 amount, uint256 shares) external whenNotPaused {
-        if (msg.sender != address(withdrawalHelper)) revert OnlyWithdrawalHelper();
+        require(msg.sender == address(withdrawalHelper), OnlyWithdrawalHelper());
         uint256 _assets = assets - amount;
         assets = _assets;
         _burn(address(this), shares);
@@ -124,7 +124,7 @@ contract StakedAvail is
     /// @dev Reverts if newAssets is 0
     /// @param newAssets New amount of assets
     function forceUpdateAssets(uint256 newAssets) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newAssets == 0) revert InvalidUpdate();
+        require(newAssets != 0, InvalidUpdate());
         assets = newAssets;
 
         emit AssetsUpdated(newAssets);
@@ -134,7 +134,7 @@ contract StakedAvail is
     /// @dev Reverts if newDepository is the zero address
     /// @param newDepository Address of the new depository contract
     function updateDepository(address newDepository) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newDepository == address(0)) revert ZeroAddress();
+        require(newDepository != address(0), ZeroAddress());
         depository = newDepository;
 
         emit DepositoryUpdated(newDepository);
@@ -144,7 +144,7 @@ contract StakedAvail is
     /// @dev Reverts if newWithdrawalHelper is the zero address
     /// @param newWithdrawalHelper Address of the new withdrawal helper contract
     function updateWithdrawalHelper(IAvailWithdrawalHelper newWithdrawalHelper) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (address(newWithdrawalHelper) == address(0)) revert ZeroAddress();
+        require(address(newWithdrawalHelper) != address(0), ZeroAddress());
         withdrawalHelper = newWithdrawalHelper;
 
         emit WithdrawalHelperUpdated(address(newWithdrawalHelper));
@@ -170,7 +170,7 @@ contract StakedAvail is
     /// @param r Signature r
     /// @param s Signature s
     function mintWithPermit(uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external whenNotPaused {
-        if (amount == 0) revert ZeroAmount();
+        require(amount != 0, ZeroAmount());
         uint256 shares = previewMint(amount);
         // slither-disable-next-line events-maths
         assets += amount;
@@ -183,7 +183,7 @@ contract StakedAvail is
     /// @dev Reverts if amount is 0
     /// @param amount Amount of Avail to stake
     function mint(uint256 amount) external whenNotPaused {
-        if (amount == 0) revert ZeroAmount();
+        require(amount != 0, ZeroAmount());
         uint256 shares = previewMint(amount);
         // slither-disable-next-line events-maths
         assets += amount;
@@ -196,7 +196,7 @@ contract StakedAvail is
     /// @param to Address of the recipient
     /// @param amount Amount of Avail to stake
     function mintTo(address to, uint256 amount) external whenNotPaused {
-        if (amount == 0) revert ZeroAmount();
+        require(amount != 0, ZeroAmount());
         uint256 shares = previewMint(amount);
         // slither-disable-next-line events-maths
         assets += amount;
@@ -208,7 +208,7 @@ contract StakedAvail is
     /// @dev Reverts if shares is 0
     /// @param shares Amount of LST to burn
     function burn(uint256 shares) external whenNotPaused {
-        if (shares == 0) revert ZeroAmount();
+        require(shares != 0, ZeroAmount());
         uint256 amount = previewBurn(shares);
         _transfer(msg.sender, address(this), shares);
         withdrawalHelper.mint(msg.sender, amount, shares);

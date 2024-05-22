@@ -27,7 +27,7 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
     IStakedAvail public stAvail;
 
     constructor(IERC20 newAvail) {
-        if (address(newAvail) == address(0)) revert ZeroAddress();
+        require(address(newAvail) != address(0), ZeroAddress());
         avail = newAvail;
         _disableInitializers();
     }
@@ -41,12 +41,11 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
         external
         initializer
     {
-        if (
-            governance == address(0) || pauser == address(0) || newSwapRouter == address(0)
-                || address(newStAvail) == address(0)
-        ) {
-            revert ZeroAddress();
-        }
+        require(
+            governance != address(0) && pauser != address(0) && newSwapRouter != address(0)
+                && address(newStAvail) != address(0),
+            ZeroAddress()
+        );
         swapRouter = newSwapRouter;
         stAvail = newStAvail;
         __AccessControlDefaultAdminRules_init(0, governance);
@@ -67,7 +66,7 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
     /// @notice Updates the swap router address
     /// @param newSwapRouter Address of the new swap router
     function updateSwapRouter(address newSwapRouter) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (newSwapRouter == address(0)) revert ZeroAddress();
+        require(newSwapRouter != address(0), ZeroAddress());
         swapRouter = newSwapRouter;
     }
 
@@ -80,17 +79,17 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
         whenNotPaused
     {
         // slither-disable-next-line timestamp
-        if (block.timestamp > deadline) revert ExpiredDeadline();
+        require(block.timestamp <= deadline, ExpiredDeadline());
         (IERC20 tokenIn, IERC20 tokenOut, uint256 inAmount, uint256 minOutAmount,) =
             abi.decode(data[4:], (IERC20, IERC20, uint256, uint256, Transformation[]));
-        if (address(tokenOut) != address(avail)) revert InvalidOutputToken();
+        require(address(tokenOut) == address(avail), InvalidOutputToken());
         tokenIn.safeTransferFrom(msg.sender, address(this), inAmount);
         tokenIn.forceApprove(allowanceTarget, inAmount);
         // slither-disable-next-line low-level-calls
         (bool success, bytes memory result) = swapRouter.call(data);
-        if (!success) revert SwapFailed(string(result));
+        require(success, SwapFailed(string(result)));
         uint256 outAmount = abi.decode(result, (uint256));
-        if (outAmount < minOutAmount) revert ExceedsSlippage();
+        require(outAmount >= minOutAmount, ExceedsSlippage());
         // slither-disable-next-line unused-return
         avail.approve(address(stAvail), outAmount);
         stAvail.mintTo(msg.sender, outAmount);
@@ -112,19 +111,19 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
         bytes32 s
     ) external whenNotPaused {
         // slither-disable-next-line timestamp
-        if (block.timestamp > deadline) revert ExpiredDeadline();
+        require(block.timestamp <= deadline, ExpiredDeadline());
         (IERC20 tokenIn, IERC20 tokenOut, uint256 inAmount, uint256 minOutAmount,) =
             abi.decode(data[4:], (IERC20, IERC20, uint256, uint256, Transformation[]));
-        if (address(tokenOut) != address(avail)) revert InvalidOutputToken();
+        require(address(tokenOut) == address(avail), InvalidOutputToken());
         // if permit fails, assume executed
         try IERC20Permit(address(tokenIn)).permit(msg.sender, address(this), inAmount, deadline, v, r, s) {} catch {}
         tokenIn.safeTransferFrom(msg.sender, address(this), inAmount);
         tokenIn.forceApprove(allowanceTarget, inAmount);
         // slither-disable-next-line low-level-calls
         (bool success, bytes memory result) = swapRouter.call(data);
-        if (!success) revert SwapFailed(string(result));
+        require(success, SwapFailed(string(result)));
         uint256 outAmount = abi.decode(result, (uint256));
-        if (outAmount < minOutAmount) revert ExceedsSlippage();
+        require(outAmount >= minOutAmount, ExceedsSlippage());
         // slither-disable-next-line unused-return
         avail.approve(address(stAvail), outAmount);
         stAvail.mintTo(msg.sender, outAmount);
@@ -135,17 +134,17 @@ contract DeqRouter is PausableUpgradeable, AccessControlDefaultAdminRulesUpgrade
     /// @param data Data for the swap from 0x API
     function swapETHtoStAvail(uint256 deadline, bytes calldata data) external payable whenNotPaused {
         // slither-disable-next-line timestamp
-        if (block.timestamp > deadline) revert ExpiredDeadline();
+        require(block.timestamp <= deadline, ExpiredDeadline());
         (address tokenIn, IERC20 tokenOut, uint256 inAmount, uint256 minOutAmount,) =
             abi.decode(data[4:], (address, IERC20, uint256, uint256, Transformation[]));
-        if (address(tokenIn) != 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) revert InvalidInputToken();
-        if (address(tokenOut) != address(avail)) revert InvalidOutputToken();
-        if (msg.value != inAmount) revert InvalidInputAmount();
+        require(address(tokenIn) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE, InvalidInputToken());
+        require(address(tokenOut) == address(avail), InvalidOutputToken());
+        require(msg.value == inAmount, InvalidInputAmount());
         // slither-disable-next-line low-level-calls
         (bool success, bytes memory result) = swapRouter.call{value: msg.value}(data);
-        if (!success) revert SwapFailed(string(result));
+        require(success, SwapFailed(string(result)));
         uint256 outAmount = abi.decode(result, (uint256));
-        if (outAmount < minOutAmount) revert ExceedsSlippage();
+        require(outAmount >= minOutAmount, ExceedsSlippage());
         // slither-disable-next-line unused-return
         avail.approve(address(stAvail), outAmount);
         stAvail.mintTo(msg.sender, outAmount);
